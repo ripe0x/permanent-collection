@@ -1,0 +1,107 @@
+name: test
+
+on:
+  # Skip PRs that can't affect the app job. The only job below typechecks
+  # and builds `app/` — Solidity-only changes can't change its outcome
+  # (generated ABIs are checked in under app/src/lib/abis, so an ABI
+  # regen still triggers via app/**), and docs-only PRs have nothing to
+  # check. GitHub Actions doesn't allow both `paths` and `paths-ignore`
+  # on the same event, so we use paths-ignore — it skips when ALL changed
+  # files match one of the patterns below, and triggers otherwise.
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'contracts/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'LICENSE'
+      - '.gitignore'
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'contracts/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'LICENSE'
+      - '.gitignore'
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Contracts CI job DELETED. Forge build under the audited compile
+  # profile (`via_ir=true`, `optimizer_runs=1_000_000`) peaks at ~13 GB
+  # RSS — proven empirically: locally with a 7 GB OOM watchdog, solc
+  # is killed at the same compile phase CI's was. The default
+  # ubuntu-latest private-repo runner is 2-core/7GB and can't fit it.
+  # A GitHub larger runner (4-core/16GB) would work for ~$8/mo, but
+  # pre-launch on a solo private repo the value of CI vs. running the
+  # forge suite locally before deploy is marginal.
+  #
+  # Run the full forge suite locally before deploy. Re-add a forge job
+  # here when a larger runner is worth the cost or you want green-check
+  # PR audit trails.
+
+  app:
+    name: app typecheck + lint + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.4.0
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: app typecheck
+        run: pnpm typecheck
+
+      # `pnpm lint` (next lint) is interactive on first run and is deprecated
+      # in Next 16. Migrate to ESLint CLI before re-enabling here:
+      #   npx @next/codemod@canary next-lint-to-eslint-cli app
+
+      - name: app build
+        # `--filter ./app` (path filter) matches the workspace by directory.
+        # The bare-name form `--filter app` silently matches nothing on
+        # pnpm 9.4.0 — it prints "No projects matched the filters" and
+        # exits 0, so the build never actually runs. Use the path form
+        # everywhere (the root package.json already uses it for `dev`/`build`).
+        run: pnpm --filter ./app build
+        env:
+          # Build expects NEXT_PUBLIC_* addresses at compile time; CI uses
+          # placeholders since the build doesn't connect to a chain. The
+          # output is type-checked only — runtime usage requires real env.
+          NEXT_PUBLIC_CHAIN_ID: "1"
+          # Server-only — never NEXT_PUBLIC_* (the /api/rpc proxy keeps the
+          # paid key off the client bundle). CI uses publicnode for the
+          # type-only build; runtime needs a real upstream.
+          RPC_URL: "https://ethereum-rpc.publicnode.com"
+          NEXT_PUBLIC_TOKEN_ADDRESS: "0x0000000000000000000000000000000000000001"
+          NEXT_PUBLIC_PERMANENT_COLLECTION_ADDRESS: "0x0000000000000000000000000000000000000005"
+          NEXT_PUBLIC_PROTOCOL_ADMIN_ADDRESS: "0x0000000000000000000000000000000000000008"
+          NEXT_PUBLIC_PATRON_ADDRESS: "0x0000000000000000000000000000000000000010"
+          NEXT_PUBLIC_RETURN_AUCTION_MODULE_ADDRESS: "0x0000000000000000000000000000000000000011"
+          NEXT_PUBLIC_PUNK_VAULT_ADDRESS: "0x0000000000000000000000000000000000000012"
+          NEXT_PUBLIC_BUYBACK_BURNER_ADDRESS: "0x0000000000000000000000000000000000000013"
+          NEXT_PUBLIC_LIVE_BID_ADAPTER_ADDRESS: "0x0000000000000000000000000000000000000014"
+          NEXT_PUBLIC_VAULT_BURN_POOL_ADDRESS: "0x0000000000000000000000000000000000000015"
+          NEXT_PUBLIC_VAULT_BURN_ADAPTER_ADDRESS: "0x0000000000000000000000000000000000000016"
+          NEXT_PUBLIC_RENDERER_ADDRESS: "0x0000000000000000000000000000000000000017"
+          # Read by app/lib/swap/poolKey.ts at module load — throws if unset
+          # or malformed. Per-launch CREATE2-mined contract; placeholder here.
+          NEXT_PUBLIC_ARTCOINS_HOOK_ADDRESS: "0x0000000000000000000000000000000000000018"

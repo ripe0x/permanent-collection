@@ -1,0 +1,14 @@
+{
+  "name": "contracts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test --fork-url $MAINNET_RPC_URL -vvv",
+    "test:gas": "forge test --fork-url $MAINNET_RPC_URL --gas-report",
+    "deploy:fork": "forge script script/Deploy.s.sol:DeployScript --rpc-url http://127.0.0.1:8545 --broadcast --slow --skip-simulation",
+    "launch:fork": "forge script script/LaunchToken.s.sol:LaunchToken --rpc-url http://127.0.0.1:8545 --broadcast --slow --skip-simulation",
+    "seed:fork": "forge script script/SeedLocalFork.s.sol:SeedLocalFork --rpc-url http://127.0.0.1:8545 --broadcast --slow --skip-simulation",
+    "scenario:fork": "forge script script/RunScenario.s.sol:RunScenario --rpc-url http://127.0.0.1:8545 --broadcast --slow --skip-simulation"
+  }
+}

@@ -1,0 +1,17 @@
+node_modules
+.ponder
+generated
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.local
+.env.*.local
+.git
+.gitignore
+.DS_Store
+fly.toml
+Dockerfile
+.dockerignore
+README.md

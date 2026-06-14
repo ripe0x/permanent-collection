@@ -1,0 +1,76 @@
+# fly.toml for the PERMANENT COLLECTION Ponder indexer.
+#
+# Deploy from this directory (the build context is `indexer/` only):
+#   fly launch --no-deploy        # first time: creates the app
+#   fly volumes create pc_ponder_data --region iad --size 1
+#   fly secrets set START_BLOCK=... PATRON_ADDRESS=0x... ...   # see .env.example
+#   fly deploy
+#
+# Mirrors the proven artcoins-indexer setup: a single always-on shared-cpu
+# machine running `ponder start` with the DB on a persistent volume. No
+# Postgres cluster — Ponder writes a file DB to /data, the cheapest topology.
+# See docs/INDEXER_DEPLOY.md for the full runbook.
+
+app = "pc-ponder"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "42069"
+  PONDER_LOG_LEVEL = "info"
+  # File DB on the mounted volume — survives deploys/restarts.
+  PONDER_DATABASE_URL = "file:/data/ponder.db"
+  # Stable schema name so `ponder start` reuses the same DB across deploys.
+  DATABASE_SCHEMA = "public"
+  # 5-minute block poll. Headline numbers update on the order of minutes for a
+  # low-traffic art protocol; this keeps poll volume inside free-tier RPC
+  # limits (~290 poll calls/day vs ~86K at the 1s default).
+  PONDER_POLL_INTERVAL_MS = "300000"
+  # Constrain Ponder's worker pool. On a shared-cpu box the default thread
+  # count + the DB engine + Node oversubscribes, causing event-loop
+  # starvation, health-check failures, and restart loops. 1 is stable for a
+  # single-machine deploy; raise if you scale the VM up.
+  PONDER_MAX_THREADS = "1"
+  # RPC (Tenderly primary + drpc backstop) is hardcoded in ponder.config.ts.
+  # Set PONDER_RPC_URL_1 / ALCHEMY_API_KEY as fly secrets only to override.
+
+[http_service]
+  internal_port = 42069
+  force_https = true
+  # An indexer must keep tailing the chain — never auto-stop it.
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+  processes = ["app"]
+
+  # Concurrency cap = cost cap. The only consumer is the PC frontend's
+  # server-side reads (a handful of GraphQL queries per page render, not
+  # concurrent). Anything sustained above this is abuse; 503 it fast.
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 30
+    soft_limit = 15
+
+  # Ponder reserves /health and /ready. Generous grace_period: the indexer
+  # needs time to open the DB + begin sync before it answers.
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "10s"
+    grace_period = "120s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  # 1GB to start. The artcoins indexer needed a bump from 512MB under PGlite
+  # memory pressure; PC indexes more contracts (incl. the 2017 market), so
+  # start at 1GB and scale to shared-cpu-2x if the initial backfill OOMs.
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[mounts]
+  source = "pc_ponder_data"
+  destination = "/data"

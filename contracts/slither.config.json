@@ -1,0 +1,6 @@
+{
+  "filter_paths": "lib/|test/|script/|src/libraries/BaseHook.sol",
+  "detectors_to_exclude": "arbitrary-send-eth,timestamp,low-level-calls,incorrect-equality,naming-convention,too-many-digits,uninitialized-local,calls-loop,cyclomatic-complexity,missing-inheritance,reentrancy-benign,reentrancy-events,reentrancy-no-eth,redundant-statements,divide-before-multiply,missing-zero-check,unused-return",
+  "exclude_informational": false,
+  "exclude_optimization": false
+}

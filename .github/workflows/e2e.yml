@@ -1,0 +1,139 @@
+# Layer 2 Playwright e2e harness (issue #88).
+#
+# OPT-IN per PR: add the `run-e2e` label to a PR to run the suite against
+# it, or use the Actions "Run workflow" button (workflow_dispatch). It does
+# NOT auto-run on PR open/push — the ~10-min fork + Playwright run was
+# burning Actions minutes on every PR at high PR volume (issue #383).
+# Re-run after a fix by removing and re-adding the label, or via dispatch.
+# Advisory status check, not required — gating on it would block merges
+# on flakes.
+#
+# Job spins up an anvil mainnet fork (via scripts/start-dev-fork.sh,
+# upstream = Tenderly public gateway), broadcasts Deploy.s.sol, boots
+# the Next dev server, then drives the Playwright suite against a
+# synthetic EIP-1193 + EIP-5792 provider injected into Chromium via
+# page.addInitScript. ~5-7 min on a warm Foundry RPC cache; +60s cold.
+#
+# Submodules: artcoins is private; the SUBMODULE_TOKEN secret is the
+# fine-grained PAT the contracts CI uses. Forge needs all submodules
+# (forge-std, solady, v4-core, v4-periphery, artcoins) to compile
+# Deploy.s.sol.
+
+name: e2e
+
+on:
+  # `labeled` fires on every label add; the job-level `if` narrows it to
+  # the `run-e2e` label. The label is a deliberate opt-in, so there is no
+  # paths filter here — labeling a PR always runs the suite.
+  pull_request:
+    types: [labeled]
+  # Manual trigger: run the suite on demand (after a fix, on a merged
+  # branch, or against an arbitrary ref) without labeling a PR.
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright suite
+    # Only the `run-e2e` label triggers a run; any other label add is a
+    # no-op. Manual dispatch always runs.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.label.name == 'run-e2e' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Tenderly public gateway — archive-capable, no key needed, no
+      # paid CU. Standing rule from global CLAUDE.md.
+      E2E_FORK_UPSTREAM: https://gateway.tenderly.co/public/mainnet
+      # Pinned in .env.example; matches the contracts test suite so the
+      # Foundry RPC cache is shared across forge + Playwright in CI.
+      E2E_FORK_BLOCK: "25133816"
+    steps:
+      - name: Checkout (parent repo only)
+        uses: actions/checkout@v4
+        with:
+          # Skip submodules here; we fetch them in the next step with
+          # credentials configured per-host. (Historically the artcoins
+          # submodule was private and needed SUBMODULE_TOKEN; it now
+          # resolves from the public ripe0x/artcoins mirror, so the
+          # default token suffices and SUBMODULE_TOKEN is a fallback.)
+          submodules: false
+
+      - name: Fetch submodules
+        # Configure git to use SUBMODULE_TOKEN for any github.com URL,
+        # then run a recursive submodule init. Fall back to
+        # GITHUB_TOKEN when SUBMODULE_TOKEN is unset (covers forks /
+        # local re-runs by maintainers who haven't provisioned the
+        # secret). All submodules, including artcoins (the public
+        # ripe0x/artcoins mirror), are publicly clonable.
+        env:
+          GH_TOKEN: ${{ secrets.SUBMODULE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+          # The artcoins entry has `update = none` in .gitmodules so a
+          # plain recursive init would skip it. --checkout overrides
+          # that per-call. See CLAUDE.md "Note on .gitmodules update =
+          # none" for the rationale.
+          git submodule update --init --recursive --checkout
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.4.0
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      # Cache the Foundry RPC cache directory keyed on the fork block —
+      # the first CI run pays the ~30s cold upstream-fetch cost; every
+      # subsequent run hits the cache and is free.
+      - name: Cache Foundry RPC state
+        uses: actions/cache@v4
+        with:
+          path: ~/.foundry/cache/rpc/mainnet/${{ env.E2E_FORK_BLOCK }}
+          key: foundry-rpc-${{ runner.os }}-mainnet-${{ env.E2E_FORK_BLOCK }}-v1
+
+      - name: Install Playwright browsers
+        run: pnpm --filter ./app exec playwright install --with-deps chromium
+
+      - name: Run Playwright suite
+        # Phase 4: runs the full suite (smoke + Phase 2 acceptBid +
+        # Phase 3 write surfaces). Per-test timeout in
+        # `app/playwright.config.ts` is 240s; worker count is pinned
+        # to 1 because every test shares one anvil fork.
+        run: pnpm --filter ./app exec playwright test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            app/playwright-report/
+            app/test-results/
+          retention-days: 14
+
+      - name: Upload anvil + dev-server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-process-logs
+          path: |
+            /tmp/anvil-8645.log
+            /tmp/pc-app-3100.log
+            /tmp/pc-e2e-start-dev-fork.log
+          if-no-files-found: ignore
+          retention-days: 14
