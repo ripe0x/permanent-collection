@@ -1,0 +1,141 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+script = "script"
+solc_version = "0.8.26"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 1_000_000
+via_ir = true
+# Cap parallel solc workers (the `--threads`/`--jobs` flag). Default is "all
+# logical cores", which spawns 5+ via_ir solc processes — each is very
+# memory-hungry under via_ir, so on a typical dev machine they OOM-thrash and a
+# full `forge build` can stall for 15-20 min with zero progress. 4 keeps
+# parallelism without the thrash; lower to 2 if a full build still swaps, or
+# override per-run with `--threads 0` (all cores) on a high-RAM box / CI.
+threads = 4
+fs_permissions = [
+  { access = "read-write", path = "./deployments.json" },
+  # Isolated deployments file for the Phase-2 split dress rehearsal
+  # (`DeployRehearsalForkTest`), so its 2a-write → 2b-read handoff never races
+  # the run()-based suites on the shared default path under `-j`.
+  { access = "read-write", path = "./deployments.rehearsal.json" },
+  # Committed snapshot of the live mainnet Phase-2a deployment; the token-only
+  # rehearsal (`TokenLaunchAgainstLive2aForkTest`) reads it, copies it to the
+  # rehearsal path above, and launches 2b against it.
+  { access = "read", path = "./deployments.mainnet.json" },
+  { access = "read-write", path = "./svg-out" },
+]
+gas_limit = 9223372036854775807
+ffi = false
+
+[profile.default.lint]
+exclude_lints = [
+  "screaming-snake-case-immutable",
+  "unwrapped-modifier-logic",
+  "unsafe-typecast",
+  "unused-import",
+  "erc20-unchecked-transfer",
+  "mixed-case-variable",
+  "mixed-case-function",
+]
+
+# Remappings are read from remappings.txt
+
+# [profile.tune] — REQUIRED for the mainnet broadcast of
+# `script/DeployArtcoinsLaunchStack.s.sol` (Phase 1) and any script that
+# deploys `ArtCoinsHookSkimFee` / `ArtCoinsLpLocker`.
+#
+# Those two artcoins contracts only fit under EIP-170 (24,576 bytes runtime)
+# at optimizer_runs = 200 — the default profile's 1_000_000 runs maximally
+# inline and push the hook to ~28,444 bytes, which REVERTS on mainnet (a
+# `forge test` run never catches this because the test EVM ignores the size
+# limit; only a real `forge script` enforces it). The `yulDetails.stackAllocation`
+# flag is what lets 200 runs compile under via-IR (without it the hook hits a
+# Yul "stack too deep"). Mirrors the artcoins submodule's own `[profile.tune]`
+# (`lib/artcoins/foundry.toml`) — keep them in sync. Broadcast with
+# `FOUNDRY_PROFILE=tune forge script ...`.
+[profile.tune]
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+[profile.tune.optimizer_details]
+yul = true
+[profile.tune.optimizer_details.yulDetails]
+stackAllocation = true
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+multiline_func_header = "params_first"
+quote_style = "double"
+number_underscore = "thousands"
+
+[invariant]
+# Conservative defaults so the suite stays tractable on a public RPC.
+# Bump these (e.g. runs=256, depth=50) when running against an archive
+# node or for a pre-mainnet rigor pass.
+runs = 16
+depth = 20
+fail_on_revert = false
+call_override = false
+
+# Pre-broadcast canary. 1000 runs × 200 depth.
+#
+# RECOMMENDED: pin a block via FORK_BLOCK so Foundry's persistent RPC
+# cache (`~/.foundry/cache/rpc/mainnet/<block>/`) compounds across runs.
+# First run at a fresh block populates the cache (does need archive
+# access — public RPCs only serve the last ~128 blocks of state, so
+# either use a paid endpoint OR rerun later at a block you've already
+# warmed by other tests). Subsequent runs at the same block are
+# essentially free, regardless of which RPC URL you set:
+#
+#   # First run (pay once to populate the cache; pick a recent block)
+#   FORK_BLOCK=25133544 \
+#   MAINNET_RPC_URL=$ALCHEMY_OR_OTHER_ARCHIVE \
+#   FOUNDRY_PROFILE=invariants_deep \
+#     forge test --match-contract Invariants -vv
+#
+#   # Every subsequent run at the same block — free, fast
+#   FORK_BLOCK=25133544 \
+#   MAINNET_RPC_URL=https://ethereum-rpc.publicnode.com \
+#   FOUNDRY_PROFILE=invariants_deep \
+#     forge test --match-contract Invariants -vv
+#
+# Pick a block and stick with it across the launch cycle so the cache
+# amortizes — moving the pin invalidates the cache for the new block.
+#
+# Observed cost without caching: a single 1000×200 run exhausted a
+# Starter-tier Alchemy monthly allowance. With caching: ~zero CU on
+# the second+ run.
+#
+# `fail_on_revert = false` matches default since the handler
+# intentionally catches and no-ops inapplicable actions.
+[profile.invariants_deep.invariant]
+runs = 1_000
+depth = 200
+fail_on_revert = false
+call_override = false
+
+# Mid-tier rigor uplift: 200 runs x 100 depth (~62x the default
+# 16x20). Useful when you want more confidence than the default but
+# don't have archive RPC access for the full deep run. Tractable on
+# public RPC overnight; fits well inside a paid Alchemy month-CU
+# budget. Run with:
+#   FORK_BLOCK=<block> FOUNDRY_PROFILE=invariants_medium \
+#     forge test --match-contract Invariants -vv
+[profile.invariants_medium.invariant]
+runs = 200
+depth = 100
+fail_on_revert = false
+call_override = false
+
+[rpc_endpoints]
+mainnet = "${MAINNET_RPC_URL}"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}" }

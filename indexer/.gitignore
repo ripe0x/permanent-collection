@@ -1,0 +1,11 @@
+node_modules
+.ponder
+generated
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.local
+.env.*.local
+.DS_Store

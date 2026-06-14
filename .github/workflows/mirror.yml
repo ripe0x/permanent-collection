@@ -1,0 +1,87 @@
+# Publish master to the public repo, ripe0x/permanent-collection.
+#
+# The public repo carries a FRESH, decoupled history: it does NOT share
+# SHAs with this private working repo. Each change to master is published
+# as a single snapshot commit on top of the public tip — the public
+# history starts at a clean root and grows one commit per master change,
+# with no pre-launch development residue and no shared SHAs. Issues, PRs,
+# and WIP branches stay in this private repo, as does everything under
+# docs/internal/ (operational/audit/spec docs), which is stripped from the
+# published tree.
+#
+# Auth: MIRROR_DEPLOY_KEY is an SSH private key whose public half is a
+# write deploy key on the public repo (scoped to that single repo).
+name: mirror
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    # No-op everywhere except the private working repo. This file is
+    # itself published to the public repo, where it must not run.
+    if: github.repository == 'ripe0x/permanent-collection-dev'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish a master snapshot to the public repo
+        env:
+          DEPLOY_KEY: ${{ secrets.MIRROR_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "::error::MIRROR_DEPLOY_KEY secret is not set; publish skipped, the public repo is going stale"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/mirror_key
+          chmod 600 ~/.ssh/mirror_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/mirror_key -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+          PUBLIC=git@github.com:ripe0x/permanent-collection.git
+
+          # Identity for the synthetic snapshot commits (never a personal email).
+          export GIT_AUTHOR_NAME="permanent-collection-mirror"
+          export GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
+          export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+          export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+
+          # Paths kept in the private working repo only — stripped from the
+          # published tree (space-separated). Operational/audit/spec docs, the
+          # not-yet-deployed Design B dispatcher (contracts/future), and the
+          # off-chain keeper bot.
+          PRIVATE_PATHS="docs/internal contracts/future keeper scripts/keeper.ts .github/workflows/keeper.yml docs/KEEPER.md"
+
+          # Build the PUBLIC tree = master's tree minus the private-only paths,
+          # in a throwaway index (the checkout's own index is untouched), then
+          # publish that filtered tree onto the public tip. The public history
+          # stays decoupled and free of process residue.
+          FILTER_INDEX="$(mktemp)"
+          GIT_INDEX_FILE="$FILTER_INDEX" git read-tree 'refs/remotes/origin/master^{tree}'
+          GIT_INDEX_FILE="$FILTER_INDEX" git rm -r --cached --quiet --ignore-unmatch -- $PRIVATE_PATHS >/dev/null
+          TREE=$(GIT_INDEX_FILE="$FILTER_INDEX" git write-tree)
+          rm -f "$FILTER_INDEX"
+          SUBJECT=$(git log -1 --format=%s 'refs/remotes/origin/master')
+          PARENT=$(git ls-remote "$PUBLIC" refs/heads/master | cut -f1)
+
+          if [ -n "$PARENT" ]; then
+            git fetch --no-tags "$PUBLIC" master
+            if [ "$TREE" = "$(git rev-parse FETCH_HEAD^{tree})" ]; then
+              echo "public repo already up to date (tree unchanged); nothing to publish"
+              exit 0
+            fi
+            COMMIT=$(git commit-tree "$TREE" -p "$PARENT" -m "$SUBJECT")
+          else
+            COMMIT=$(git commit-tree "$TREE" -m "$SUBJECT")
+          fi
+
+          git push "$PUBLIC" "$COMMIT:refs/heads/master"

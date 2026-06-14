@@ -1,0 +1,218 @@
+/* ──────────────────────────────────────────────────────────────────────
+   PERMANENT COLLECTION — design system
+
+   Tokens lifted exactly from the v3 prototype. Three typefaces self-hosted
+   via next/font (see layout.tsx) and aliased to --serif / --sans / --mono.
+   Match v3 visually; visual regressions from v3 are bugs.
+   ────────────────────────────────────────────────────────────────────── */
+
+:root {
+    /* Palette — institutional contemporary. Pure white bg, near-pure
+       black ink, true-neutral grays for muted/lines/panel. No warm
+       undertones anywhere. The former rust accent is retired: --accent
+       is now a neutral "primary emphasis" (= ink), and state cues route
+       to dedicated semantic tokens — --danger (errors/warnings) and
+       --pending (in-flight, echoing the on-chain pending stroke).
+       Whitney/MoMA register: photography-led, mono-ish, monochrome. */
+    --bg: #FFFFFF;
+    --panel: #F4F4F4;
+    --ink: #111111;
+    --muted: #6B6B6B;
+    --line: #DADADA;
+    --accent: #111111;
+    --danger: #C44;
+    --pending: #454545;
+
+    /* Punk artwork surfaces. --punk-blue is the canonical CryptoPunks
+       background (matches the on-chain renderer's "classic" tile); --tile-dark
+       is the dim surface the isolated-trait visuals sit on (trait detail hero
+       + grid + uncollected list). */
+    --punk-blue: #638596;
+    --tile-dark: #1c1c1c;
+
+    /* Type stacks — museum-publication-with-technical-apparatus mix.
+       Display headlines (which use `--serif`) render in Newsreader — the
+       curatorial voice doing the heavy display. Body prose classes
+       (which use `--sans`) render in Plex Mono — the on-chain document
+       reporting the work. Serif heads the page; mono tells the facts.
+       The variable names are historical and now mismatch their
+       semantics; refactoring would be tidy but invasive. */
+    --serif: var(--font-serif), Georgia, serif;
+    --sans: var(--font-mono), ui-monospace, monospace;
+    --mono: var(--font-mono), ui-monospace, monospace;
+
+    /* Layout */
+    --pad: clamp(20px, 5vw, 72px);
+    --max: 1180px;
+    --max-wide: 1320px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* On dark surfaces the near-black focus ring would vanish — invert it. */
+.token-section :focus-visible {
+    outline-color: var(--bg);
+}
+
+/* Tabular numerals on live-updating values so they don't jitter. */
+.tnum {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ─── Shared utility classes (mirror v3 prototype) ─────────────────── */
+
+.wrap {
+    /* Match the header/footer/hero container so content edges line up. */
+    max-width: var(--max-wide);
+    margin: 0 auto;
+    padding: 0 var(--pad);
+}
+
+.kicker,
+.eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.kicker {
+    margin-bottom: 18px;
+}
+
+.eyebrow {
+    margin-bottom: 24px;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.section-title {
+    font-size: clamp(34px, 5.4vw, 74px);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+    font-weight: 300;
+    margin-bottom: 24px;
+}
+
+.section-copy {
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--muted);
+    max-width: 620px;
+}
+
+section {
+    padding: clamp(76px, 11vh, 132px) 0;
+    border-top: 1px solid var(--line);
+}
+
+/* ─── Button primitives ────────────────────────────────────────────── */
+
+.primary,
+.secondary {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 15px 22px;
+    border: 1px solid var(--ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 148px;
+    transition: background 120ms ease, color 120ms ease;
+}
+
+.primary {
+    background: var(--ink);
+    color: var(--bg);
+}
+
+.secondary {
+    background: transparent;
+    color: var(--ink);
+}
+
+.primary:hover {
+    background: transparent;
+    color: var(--ink);
+}
+
+.secondary:hover {
+    background: var(--ink);
+    color: var(--bg);
+}
+
+.primary:disabled,
+.secondary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ─── Dark variant for the 111 token section ──────────────────── */
+
+.token-section {
+    background: var(--ink);
+    color: var(--bg);
+}
+
+.token-section .kicker,
+.token-section .muted {
+    color: #9A9A9A;
+}

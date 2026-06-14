@@ -1,0 +1,26 @@
+{
+    "name": "permanent-collection-indexer",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "ponder dev",
+        "start": "ponder start",
+        "serve": "ponder serve",
+        "db": "ponder db",
+        "codegen": "ponder codegen",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "hono": "^4.6.0",
+        "ponder": "^0.16.6",
+        "viem": "^2.47.5"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.1",
+        "typescript": "^5.7.2"
+    },
+    "engines": {
+        "node": ">=18.14"
+    }
+}

@@ -1,0 +1,70 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# foundry
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+# Same artifacts if `forge` is run from the repo root by accident.
+/cache/
+/out/
+# Per-deploy output written by Deploy.s.sol; recreated on every deploy.
+# Glob also covers deployments.rehearsal.json (the Phase-2 split dress-rehearsal
+# fork test's isolated file) and any DEPLOYMENTS_PATH-overridden variant.
+contracts/deployments*.json
+# ...except the committed snapshot of the LIVE mainnet 2a addresses, which the
+# launch scripts + the token-only rehearsal test read (it is NOT regenerated).
+!contracts/deployments.mainnet.json
+# Sidecar written by scripts/dev-up-prelaunch.sh (artcoins bootstrap
+# addresses for the PRELAUNCH=1 launch-flow demo); recreated each run.
+contracts/prelaunch-state.json
+# SVG previews written by script/DumpV3Svg.s.sol; recreated on demand.
+# Keep the dir (via .gitkeep) so it exists in fresh checkouts/worktrees —
+# RendererSnapshot.t.sol's vm.writeFile needs it present (forge won't mkdir).
+contracts/svg-out/*
+!contracts/svg-out/.gitkeep
+
+# Derived artifact: flat-file snapshot of audit-target contracts + interfaces
+# + LLM prompt, packaged for upload to an external auditor. The originals
+# in contracts/src/ and docs/ are the source of truth.
+audit-bundle/
+
+# next.js
+app/.next/
+app/out/
+app/build/
+
+# Playwright e2e (issue #88)
+app/playwright-report/
+app/test-results/
+app/blob-report/
+app/playwright/.cache/
+
+# env
+.env
+.env.local
+.env.*.local
+app/.env.local
+
+# misc
+.DS_Store
+*.log
+.turbo
+coverage/
+*.tsbuildinfo
+# .claude/ holds local config (worktrees, settings, sessions) — ignored.
+# Exception: .claude/commands/ holds shared project slash-commands (e.g. launch-review)
+# that stay version-controlled so they can't silently drift per-checkout.
+.claude/*
+!.claude/commands/
+
+# Indexer local state
+indexer/.ponder/
+# `ponder codegen` output — regenerable artifact, not consumed at build time
+# (types come from the @/generated virtual module reading ponder.config.ts +
+# ponder.schema.ts directly). ponder-env.d.ts lives at indexer/ (tracked).
+indexer/generated/
+
+# netlify (local site link state)
+.netlify/

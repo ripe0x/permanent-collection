@@ -1,0 +1,44 @@
+{
+  "name": "permanent-collection",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PERMANENT COLLECTION — a fixed-duration on-chain artwork that uses a speculative ERC20 to build an immutable public collection of CryptoPunks via full-trait coverage.",
+  "packageManager": "pnpm@9.4.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "snapshot:punksdata": "tsx scripts/snapshot-punksdata.ts",
+    "generate:abis": "tsx scripts/generate-abis.ts",
+    "build:contracts": "pnpm --filter contracts build",
+    "test:contracts": "pnpm --filter contracts test",
+    "fork:start": "./scripts/start-dev-fork.sh",
+    "fork:start:bare": "anvil --fork-url $MAINNET_RPC_URL --chain-id 1 --port 8545",
+    "fork:warp": "./scripts/warp-fork.sh",
+    "dev:up": "./scripts/dev-up.sh",
+    "deploy:fork": "pnpm --filter contracts deploy:fork",
+    "launch:fork": "pnpm --filter contracts launch:fork",
+    "seed:fork": "RPC_URL=http://127.0.0.1:8545 tsx scripts/seed-fork.ts",
+    "seed:fork:forge": "pnpm --filter contracts seed:fork",
+    "seed:title-threshold": "RPC_URL=http://127.0.0.1:8545 tsx scripts/seed-title-threshold.ts",
+    "scenario:fork": "pnpm --filter contracts scenario:fork",
+    "app:dev": "pnpm --filter ./app dev",
+    "build": "pnpm generate:abis && pnpm --filter ./app build",
+    "lint": "pnpm --filter ./app lint",
+    "typecheck": "pnpm --filter ./app typecheck",
+    "launch:fire": "./scripts/launch-fire.sh",
+    "launch:contracts": "PHASE=contracts ./scripts/launch-fire.sh",
+    "launch:token": "PHASE=token ./scripts/launch-fire.sh",
+    "launch:indexer": "PHASE=indexer ./scripts/launch-fire.sh",
+    "seed:acquisitions": "RPC_URL=http://127.0.0.1:8545 tsx scripts/seed-acquisitions.ts",
+    "keeper": "tsx scripts/keeper.ts --once",
+    "keeper:watch": "tsx scripts/keeper.ts --watch",
+    "keeper:dry": "KEEPER_DRY_RUN=1 tsx scripts/keeper.ts --once"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "viem": "^2.21.50",
+    "dotenv": "^16.4.5"
+  }
+}

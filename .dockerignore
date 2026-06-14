@@ -1,0 +1,18 @@
+# Build-context excludes for keeper/Dockerfile (context = repo root).
+# The indexer image is unaffected: its context is indexer/ only.
+.git
+node_modules
+**/node_modules
+app/.next
+app/test-results
+app/playwright-report
+contracts/lib
+contracts/out
+contracts/cache
+contracts/broadcast
+indexer/.ponder
+audit-bundle
+docs
+# Never let local secrets into an image.
+**/.env
+**/.env.*
