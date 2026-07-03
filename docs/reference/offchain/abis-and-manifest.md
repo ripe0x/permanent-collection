@@ -2,6 +2,10 @@
 
 # ABIs and the protocol manifest
 
+This page documents the machine-readable files themselves. For task-oriented
+recipes that use them (reading state, checking eligibility, watching events,
+running keeper actions), start at [AI agents](/docs/offchain/ai-agents).
+
 Everything a program (or an agent) needs to work with the protocol is
 served as static JSON from the docs site. Four entry points:
 
@@ -76,7 +80,7 @@ no mainnet deployment).
 import {createPublicClient, getContract, http} from 'viem';
 import {mainnet} from 'viem/chains';
 
-const ORIGIN = 'https://permanentcollection.xyz';
+const ORIGIN = 'https://permanentcollection.art';
 
 const manifest = await fetch(`${ORIGIN}/protocol-manifest.json`).then((r) => r.json());
 const entry = manifest.contracts.Patron;

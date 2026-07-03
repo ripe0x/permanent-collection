@@ -3,23 +3,30 @@ import type {Metadata} from 'next';
 const SITE_NAME = 'Permanent Collection';
 const SITE_TAGLINE = 'A public bid for Punk traits, funded by official pool trading.';
 
+/** The canonical production origin. Every published URL (metadata, OG images,
+ *  referral links, the docs' machine-readable surfaces) resolves to this
+ *  unless an explicit override is set. */
+export const CANONICAL_SITE_URL = 'https://permanentcollection.art';
+
 function siteUrl(): string {
-    // Priority:
-    //  1. NEXT_PUBLIC_SITE_URL — explicit override
-    //  2. DEPLOY_PRIME_URL — Netlify exposes this on every deploy; matches the
-    //     current context (production OR deploy preview), so PR previews get
-    //     OG images that point back at themselves
-    //  3. URL — Netlify's canonical site URL (== DEPLOY_PRIME_URL in production)
-    //  4. empty string — local dev. Next.js then defaults metadataBase to
-    //     http://localhost:3000, which is fine for dev but would leak that URL
-    //     into deployed metadata if any of the above were missing — hence the
-    //     explicit Netlify fallbacks.
-    const raw =
-        process.env.NEXT_PUBLIC_SITE_URL ??
-        process.env.DEPLOY_PRIME_URL ??
-        process.env.URL ??
-        '';
-    return raw.replace(/\/$/, '');
+    // 1. NEXT_PUBLIC_SITE_URL — explicit override, always wins.
+    if (process.env.NEXT_PUBLIC_SITE_URL) {
+        return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+    }
+    // 2. Deploy previews / branch deploys point at themselves (DEPLOY_PRIME_URL)
+    //    so their OG images resolve on the preview host. `CONTEXT` is set by
+    //    Netlify and is 'production' only for the live site.
+    if (
+        process.env.CONTEXT &&
+        process.env.CONTEXT !== 'production' &&
+        process.env.DEPLOY_PRIME_URL
+    ) {
+        return process.env.DEPLOY_PRIME_URL.replace(/\/$/, '');
+    }
+    // 3. Production and local dev: the fixed canonical domain, so published
+    //    metadata never leaks a Netlify deploy subdomain. metadataBase only
+    //    affects absolute URLs, which don't matter offline.
+    return CANONICAL_SITE_URL;
 }
 
 /** Build a full Metadata object for a page. Title gets the

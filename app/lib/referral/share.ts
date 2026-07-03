@@ -7,18 +7,18 @@
  *
  * The origin resolves from `NEXT_PUBLIC_SITE_URL` (the same explicit
  * override `lib/meta.ts` honors first) and otherwise falls back to the
- * production domain. We deliberately do NOT use `window.location.origin`
- * — a link shared from a deploy preview or localhost should still point
- * at production, not leak the preview host.
+ * canonical production domain. We deliberately do NOT use
+ * `window.location.origin`: a link shared from a deploy preview or
+ * localhost should still point at production, not leak the preview host.
  */
 
-const PRODUCTION_ORIGIN = 'https://111.ripe.wtf';
+import {CANONICAL_SITE_URL} from '@/lib/meta';
 
 /** Canonical origin for a shareable link, no trailing slash. */
 export function referralShareOrigin(): string {
     const raw = process.env.NEXT_PUBLIC_SITE_URL;
     if (raw && /^https?:\/\//.test(raw)) return raw.replace(/\/$/, '');
-    return PRODUCTION_ORIGIN;
+    return CANONICAL_SITE_URL;
 }
 
 /** Full `?ref=<address>` referral URL. Lands on the trade page — the surface

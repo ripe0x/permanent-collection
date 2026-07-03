@@ -46,7 +46,7 @@ Every event the protocol emits, grouped by contract. Signatures and field meanin
 
 **[`RefundWithdrawn`](/docs/contracts/return-auction-module#refundwithdrawn)** · Emitted when a bidder pulls a previously queued refund.
 
-**[`ReturnAuctionCleared`](/docs/contracts/return-auction-module#returnauctioncleared)** · Emitted on the cleared settle path with the full proceeds split: `liveBidShare` (65% of cost, to `LiveBidAdapter`), `burnShare` (25% of cost, to `BuybackBurner`), `vaultBurnShare` (10% of cost plus the premium remainder, to `VaultBurnPool`)
+**[`ReturnAuctionCleared`](/docs/contracts/return-auction-module#returnauctioncleared)** · Emitted on the cleared settle path with the full proceeds split: `liveBidShare` (65% of cost, to `LiveBidAdapter`), `burnShare` (25% of cost, to `BuybackBurner`), `vaultBurnShare` (10% of cost plus the premium remainder, to `VaultBurnPool`), and `referrerShare` (paid to `referrer`, 0 when unattributed or when the send…
 
 **[`ReturnAuctionExtended`](/docs/contracts/return-auction-module#returnauctionextended)** · Emitted when an anti-snipe extension has moved `endsAt` further into the future.
 

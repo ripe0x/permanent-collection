@@ -5,7 +5,7 @@ description: The site's public read endpoints under /api, their parameters, resp
 
 # REST endpoints
 
-The site at `permanentcollection.xyz` exposes a set of JSON read endpoints
+The site at `permanentcollection.art` exposes a set of JSON read endpoints
 under `/api`. **They exist to serve the site's own frontend and are not a
 versioned API contract**: shapes can change with any deploy, there is no
 deprecation policy, and rate limits protect the site, not integrators. The

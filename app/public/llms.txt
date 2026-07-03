@@ -2,55 +2,56 @@
 
 > An immutable on-chain protocol on Ethereum mainnet that builds a permanent collection of CryptoPunks via full-trait coverage: a global ETH live bid any eligible Punk owner can accept, a 72-hour return auction deciding each accepted Punk, and the $111 token whose trading fees fund the loop. All contracts are deployed, immutable, and source-verified.
 
-Machine-readable addresses + ABIs: /protocol-manifest.json (ABIs under /abis/). Paths are relative to this site.
+Machine-readable addresses + ABIs: https://permanentcollection.art/protocol-manifest.json (ABIs under https://permanentcollection.art/abis/).
 
 ## Introduction
 
-- [Overview](/docs/introduction/overview): What the protocol is, how the loop works, and how this reference is organized.
-- [Addresses](/docs/introduction/addresses): Every protocol contract on Ethereum mainnet, with ABI and reference links.
-- [How to read these docs](/docs/introduction/conventions): Conventions used across the reference, and where the machine-readable versions live.
+- [Overview](https://permanentcollection.art/docs/introduction/overview): What the protocol is, how the loop works, and how this reference is organized.
+- [Addresses](https://permanentcollection.art/docs/introduction/addresses): Every protocol contract on Ethereum mainnet, with ABI and reference links.
+- [How to read these docs](https://permanentcollection.art/docs/introduction/conventions): Conventions used across the reference, and where the machine-readable versions live.
 
 ## Contracts
 
-- [The $111 token](/docs/contracts/the-111-token): The protocol's ERC20, its official pool, the swap skim, and the venue-scoped transfer tax.
-- [Skim hook (ArtCoinsHookSkimFee)](/docs/contracts/skim-hook): The V4 hook on the official pool. Takes the 6% skim on swap volume, splits it three ways at swap time, and attests official-pool buys tax-exempt.
-- [PermanentCollection](/docs/contracts/permanent-collection): The records-only permanent core of the protocol.
-- [Patron](/docs/contracts/patron): Patron is the protocol's acquisition entry point.
-- [ReturnAuctionModule](/docs/contracts/return-auction-module): ReturnAuctionModule runs the 72-hour return auction that follows every acquisition.
-- [ReturnAuctionEscrow](/docs/contracts/return-auction-escrow): Transient settlement escrow that makes the 2017 CryptoPunks market record a real `PunkBought(seller, buyer, price)` for every cleared return auction, instead of a price-less `PunkTransfer`.
-- [PunkVault](/docs/contracts/punk-vault): `PunkVault` is the immutable terminal custodian for vaulted Punks.
-- [LiveBidAdapter](/docs/contracts/live-bid-adapter): LiveBidAdapter is the single inflow governor for the live bid.
-- [BuybackBurner](/docs/contracts/buyback-burner): BuybackBurner converts queued ETH into $111 and removes it from circulation.
-- [VaultBurnPool](/docs/contracts/vault-burn-pool): Burn accumulator released on every vault-path settle.
-- [ProtocolFeePhaseAdapter](/docs/contracts/protocol-fee-phase-adapter): Lean forwarder for the protocol leg of the official pool's fee skim.
-- [ReferralPayout](/docs/contracts/referral-payout): Pull-based per-referrer ETH ledger for swap referrals on the official pool.
-- [PunkVaultTitleAuction](/docs/contracts/title-auction): One-shot, permissionless English auction that sells the Vault Title, ERC721 token id 111 on `PunkVault`.
-- [PCSwapContext](/docs/contracts/pc-swap-context): Shared reentrancy-detection registry for the protocol.
-- [TokenAdminPoker](/docs/contracts/token-admin-poker): Retained-admin holder of the $111 token's `tokenAdmin` role.
-- [ProtocolAdmin](/docs/contracts/protocol-admin): The protocol's single, time-locked admin role.
-- [RendererRegistry](/docs/contracts/renderer-registry): The stable address fronting the protocol's renderer.
-- [PermanentCollectionMosaicRenderer](/docs/contracts/mosaic-renderer): The shipped renderer, installed behind `RendererRegistry`.
-- [PermanentCollectionProofRenderer](/docs/contracts/proof-renderer): On-chain SVG + JSON renderer for the 111 Proof NFTs issued by `PunkVault` (token ids 0..110, where `tokenId == traitId` directly).
-- [PunkSvgFragmentCache](/docs/contracts/punk-svg-fragment-cache): Public, permissionless on-chain cache of compact 24x24 SVG fragments derived from the canonical CryptoPunks pixel data.
-- [TraitIconCache](/docs/contracts/trait-icon-cache): Public, permissionless on-chain cache of compact SVG fragments for the 111 CryptoPunks trait icons, companion to `PunkSvgFragmentCache` (that one caches whole-Punk tiles for collected cells; this one caches the trait icons drawn in uncollec
+- [The $111 token](https://permanentcollection.art/docs/contracts/the-111-token): The protocol's ERC20, its official pool, the swap skim, and the venue-scoped transfer tax.
+- [Skim hook (ArtCoinsHookSkimFee)](https://permanentcollection.art/docs/contracts/skim-hook): The V4 hook on the official pool. Takes the 6% skim on swap volume, splits it three ways at swap time, and attests official-pool buys tax-exempt.
+- [PermanentCollection](https://permanentcollection.art/docs/contracts/permanent-collection): The records-only permanent core of the protocol.
+- [Patron](https://permanentcollection.art/docs/contracts/patron): Patron is the protocol's acquisition entry point.
+- [ReturnAuctionModule](https://permanentcollection.art/docs/contracts/return-auction-module): ReturnAuctionModule runs the 72-hour return auction that follows every acquisition.
+- [ReturnAuctionEscrow](https://permanentcollection.art/docs/contracts/return-auction-escrow): Transient settlement escrow that makes the 2017 CryptoPunks market record a real `PunkBought(seller, buyer, price)` for every cleared return auction, instead of a price-less `PunkTransfer`.
+- [PunkVault](https://permanentcollection.art/docs/contracts/punk-vault): `PunkVault` is the immutable terminal custodian for vaulted Punks.
+- [LiveBidAdapter](https://permanentcollection.art/docs/contracts/live-bid-adapter): LiveBidAdapter is the single inflow governor for the live bid.
+- [BuybackBurner](https://permanentcollection.art/docs/contracts/buyback-burner): BuybackBurner converts queued ETH into $111 and removes it from circulation.
+- [VaultBurnPool](https://permanentcollection.art/docs/contracts/vault-burn-pool): Burn accumulator released on every vault-path settle.
+- [ProtocolFeePhaseAdapter](https://permanentcollection.art/docs/contracts/protocol-fee-phase-adapter): Lean forwarder for the protocol leg of the official pool's fee skim.
+- [ReferralPayout](https://permanentcollection.art/docs/contracts/referral-payout): Pull-based per-referrer ETH ledger for swap referrals on the official pool.
+- [PunkVaultTitleAuction](https://permanentcollection.art/docs/contracts/title-auction): One-shot, permissionless English auction that sells the Vault Title, ERC721 token id 111 on `PunkVault`.
+- [PCSwapContext](https://permanentcollection.art/docs/contracts/pc-swap-context): Shared reentrancy-detection registry for the protocol.
+- [TokenAdminPoker](https://permanentcollection.art/docs/contracts/token-admin-poker): Retained-admin holder of the $111 token's `tokenAdmin` role.
+- [ProtocolAdmin](https://permanentcollection.art/docs/contracts/protocol-admin): The protocol's single, time-locked admin role.
+- [RendererRegistry](https://permanentcollection.art/docs/contracts/renderer-registry): The stable address fronting the protocol's renderer.
+- [PermanentCollectionMosaicRenderer](https://permanentcollection.art/docs/contracts/mosaic-renderer): The shipped renderer, installed behind `RendererRegistry`.
+- [PermanentCollectionProofRenderer](https://permanentcollection.art/docs/contracts/proof-renderer): On-chain SVG + JSON renderer for the 111 Proof NFTs issued by `PunkVault` (token ids 0..110, where `tokenId == traitId` directly).
+- [PunkSvgFragmentCache](https://permanentcollection.art/docs/contracts/punk-svg-fragment-cache): Public, permissionless on-chain cache of compact 24x24 SVG fragments derived from the canonical CryptoPunks pixel data.
+- [TraitIconCache](https://permanentcollection.art/docs/contracts/trait-icon-cache): Public, permissionless on-chain cache of compact SVG fragments for the 111 CryptoPunks trait icons, companion to `PunkSvgFragmentCache` (that one caches whole-Punk tiles for collected cells; this one caches the trait icons drawn in uncollected and pending cells of the mosaic).
 
 ## Guides
 
-- [Accept the live bid](/docs/guides/accept-the-live-bid): The end-to-end flow for selling an eligible Punk to the protocol at the live bid.
-- [Bid on a return auction](/docs/guides/bid-on-a-return-auction): Find live return auctions, compute the minimum bid, place and settle bids, and collect refunds.
-- [Run a keeper](/docs/guides/run-a-keeper): The permissionless calls that keep value moving through the protocol, how to check readiness off-chain, and a minimal viem loop that sends them when profitable.
-- [Swap with referral attribution](/docs/guides/swap-with-attribution): How to attach referral attribution to a $111 swap via V4 hookData, get credited in ReferralPayout on every swap, and claim the accrued ETH.
-- [Contribute to the live bid](/docs/guides/contribute-to-the-bid): Route ETH into the live bid with attributed contributions or bare sends to LiveBidAdapter.
-- [Read the collection state](/docs/guides/read-collection-state): The read surface an integrator or agent needs, contract by contract, plus how to decode the 111-bit trait masks and cast one-liners for the headline numbers.
+- [Accept the live bid](https://permanentcollection.art/docs/guides/accept-the-live-bid): The end-to-end flow for selling an eligible Punk to the protocol at the live bid.
+- [Bid on a return auction](https://permanentcollection.art/docs/guides/bid-on-a-return-auction): Find live return auctions, compute the minimum bid, place and settle bids, and collect refunds.
+- [Run a keeper](https://permanentcollection.art/docs/guides/run-a-keeper): The permissionless calls that keep value moving through the protocol, how to check readiness off-chain, and a minimal viem loop that sends them when profitable.
+- [Swap with referral attribution](https://permanentcollection.art/docs/guides/swap-with-attribution): How to attach referral attribution to a $111 swap via V4 hookData, get credited in ReferralPayout on every swap, and claim the accrued ETH.
+- [Contribute to the live bid](https://permanentcollection.art/docs/guides/contribute-to-the-bid): Route ETH into the live bid with attributed contributions or bare sends to LiveBidAdapter.
+- [Read the collection state](https://permanentcollection.art/docs/guides/read-collection-state): The read surface an integrator or agent needs, contract by contract, plus how to decode the 111-bit trait masks and cast one-liners for the headline numbers.
 
 ## Off-chain
 
-- [Indexer (GraphQL)](/docs/offchain/indexer): The protocol's Ponder indexer, every table it maintains, the contract events that feed each one, and example GraphQL queries.
-- [REST endpoints](/docs/offchain/rest-api): The site's public read endpoints under /api, their parameters, response shapes, and caching behavior.
-- [ABIs and the protocol manifest](/docs/offchain/abis-and-manifest): The machine-readable entry points, the protocol manifest, served ABI files, llms.txt, and the docs search index, with a viem loading example.
+- [AI agents](https://permanentcollection.art/docs/offchain/ai-agents): One entry point for agents, indexers, and bots: which files to fetch, which reads to call, which events to watch, and which endpoints exist.
+- [Indexer (GraphQL)](https://permanentcollection.art/docs/offchain/indexer): The protocol's Ponder indexer, every table it maintains, the contract events that feed each one, and example GraphQL queries.
+- [REST endpoints](https://permanentcollection.art/docs/offchain/rest-api): The site's public read endpoints under /api, their parameters, response shapes, and caching behavior.
+- [ABIs and the protocol manifest](https://permanentcollection.art/docs/offchain/abis-and-manifest): The machine-readable entry points, the protocol manifest, served ABI files, llms.txt, and the docs search index, with a viem loading example.
 
 ## Reference
 
-- [Access control](/docs/reference/access-control): Every state-changing function and who may call it.
-- [Errors index](/docs/reference/errors): Every custom error, its contract, and the condition that raises it.
-- [Events index](/docs/reference/events): Every event the protocol emits, grouped by contract.
+- [Access control](https://permanentcollection.art/docs/reference/access-control): Every state-changing function and who may call it.
+- [Errors index](https://permanentcollection.art/docs/reference/errors): Every custom error, its contract, and the condition that raises it.
+- [Events index](https://permanentcollection.art/docs/reference/events): Every event the protocol emits, grouped by contract.

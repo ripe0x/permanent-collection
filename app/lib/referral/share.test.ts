@@ -26,9 +26,9 @@ describe('referral share helpers', () => {
 
     it('falls back to the canonical origin when no override is set', () => {
         delete process.env.NEXT_PUBLIC_SITE_URL;
-        expect(referralShareOrigin()).toBe('https://111.ripe.wtf');
-        expect(referralUrl(ADDR)).toBe(`https://111.ripe.wtf/trade?ref=${ADDR}`);
-        expect(vanityUrl('alice')).toBe('https://111.ripe.wtf/r/alice');
+        expect(referralShareOrigin()).toBe('https://permanentcollection.art');
+        expect(referralUrl(ADDR)).toBe(`https://permanentcollection.art/trade?ref=${ADDR}`);
+        expect(vanityUrl('alice')).toBe('https://permanentcollection.art/r/alice');
     });
 
     it('honors NEXT_PUBLIC_SITE_URL and strips a trailing slash', () => {
@@ -39,12 +39,12 @@ describe('referral share helpers', () => {
 
     it('ignores a non-http override and uses the canonical fallback', () => {
         process.env.NEXT_PUBLIC_SITE_URL = 'not-a-url';
-        expect(referralShareOrigin()).toBe('https://111.ripe.wtf');
+        expect(referralShareOrigin()).toBe('https://permanentcollection.art');
     });
 
     it('strips the protocol for display', () => {
-        expect(displayLink('https://111.ripe.wtf/trade?ref=0xabc')).toBe(
-            '111.ripe.wtf/trade?ref=0xabc',
+        expect(displayLink('https://permanentcollection.art/trade?ref=0xabc')).toBe(
+            'permanentcollection.art/trade?ref=0xabc',
         );
         expect(displayLink('http://localhost:3000/r/alice')).toBe(
             'localhost:3000/r/alice',

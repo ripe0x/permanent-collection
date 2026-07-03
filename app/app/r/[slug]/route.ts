@@ -15,6 +15,7 @@
 import {NextResponse} from 'next/server';
 
 import {resolveSlug} from '@/lib/referral/aliases';
+import {CANONICAL_SITE_URL} from '@/lib/meta';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,13 +24,16 @@ export const dynamic = 'force-dynamic';
  *  deploy host (`<id>--site.netlify.app`) — redirecting there pins the
  *  visitor to a frozen deploy permalink AND persists the `?ref` in
  *  localStorage on the wrong origin, so the sticky referrer never follows
- *  them to the canonical site. Prefer the canonical origin from
- *  `NEXT_PUBLIC_SITE_URL` (set in production); fall back to the request
- *  origin for local dev / e2e where the env var is unset. */
+ *  them to the canonical site. Prefer an explicit `NEXT_PUBLIC_SITE_URL`,
+ *  then the fixed canonical domain in production, and fall back to the
+ *  request origin only for local dev / e2e. */
 function redirectBase(req: Request): string {
     const canonical = process.env.NEXT_PUBLIC_SITE_URL;
     if (canonical && /^https?:\/\//.test(canonical)) {
         return canonical.replace(/\/$/, '');
+    }
+    if (process.env.CONTEXT === 'production') {
+        return CANONICAL_SITE_URL;
     }
     return new URL(req.url).origin;
 }

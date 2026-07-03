@@ -1,5 +1,6 @@
 {
   "name": "PERMANENT COLLECTION",
+  "origin": "https://permanentcollection.art",
   "chainId": 1,
   "deployBlock": 25270161,
   "canonicalPoolId": "0xf860d8f4896aed6cc1c68d234ba728680902f0ae43a459fbee6f6baa8036f795",
@@ -106,7 +107,7 @@
       "address": "0xCd7eE161a7aA9f49F7d970CF3B31fE5ac6D20Ca7",
       "abi": "/abis/TraitIconCache.json",
       "docs": "/docs/contracts/trait-icon-cache",
-      "role": "Public, permissionless on-chain cache of compact SVG fragments for the 111 CryptoPunks trait icons, companion to `PunkSvgFragmentCache` (that one caches whole-Punk tiles for collected cells; this one caches the trait icons drawn in uncollec"
+      "role": "Public, permissionless on-chain cache of compact SVG fragments for the 111 CryptoPunks trait icons, companion to `PunkSvgFragmentCache` (that one caches whole-Punk tiles for collected cells; this one caches the trait icons drawn in uncollected and pending cells of the mosaic)."
     }
   },
   "external": {

@@ -170,7 +170,7 @@ await walletClient.writeContract({
 The official frontend resolves the referrer it encodes, in priority order: a `?ref=0x...` query parameter on the current visit (persisted to localStorage, so it stays sticky across later visits), then the previously stored value, then an operator-configured default. Any address case is accepted and normalized. So the simplest integration of all is a link:
 
 ```
-https://permanentcollection.xyz/?ref=0xYourAddress
+https://permanentcollection.art/?ref=0xYourAddress
 ```
 
 Swaps made through the app by visitors who arrived on that link carry your address as the referrer, at the frontend's default `referralBps` of 250.

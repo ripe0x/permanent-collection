@@ -83,8 +83,19 @@ spec), `docs/SECURITY.md` (trust model), and `docs/COMPOSABILITY.md`
 
 ## For AI agents
 
-Start with [`/protocol-manifest.json`](/protocol-manifest.json): every
-contract's address, ABI path, and reference page in one JSON document. ABIs
-are served at `/abis/<ContractName>.json`. An orientation file lives at
-[`/llms.txt`](/llms.txt). All reads work against any Ethereum mainnet RPC;
-examples in this reference use `https://ethereum-rpc.publicnode.com`.
+[AI agents](/docs/offchain/ai-agents) is the entry point for automated
+consumers: recipes for reading protocol state, checking eligibility, finding
+live auctions, watching events, and running keeper actions, each pointing at
+the fuller reference.
+
+The machine-readable surfaces it builds on:
+
+- [`/protocol-manifest.json`](/protocol-manifest.json): every contract's
+  address, ABI path, and reference page in one document
+- `/abis/<ContractName>.json`: one plain ABI array per contract
+- [`/llms.txt`](/llms.txt): a compact map of the whole reference
+- [`/docs-search-index.json`](/docs-search-index.json): this reference as a
+  retrieval corpus
+
+All reads work against any Ethereum mainnet RPC; examples use
+`https://ethereum-rpc.publicnode.com`.

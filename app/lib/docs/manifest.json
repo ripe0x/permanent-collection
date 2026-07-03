@@ -153,7 +153,7 @@
           "title": "TraitIconCache",
           "slug": "trait-icon-cache",
           "path": "/docs/contracts/trait-icon-cache",
-          "description": "Public, permissionless on-chain cache of compact SVG fragments for the 111 CryptoPunks trait icons, companion to `PunkSvgFragmentCache` (that one caches whole-Punk tiles for collected cells; this one caches the trait icons drawn in uncollec"
+          "description": "Public, permissionless on-chain cache of compact SVG fragments for the 111 CryptoPunks trait icons, companion to `PunkSvgFragmentCache` (that one caches whole-Punk tiles for collected cells; this one caches the trait icons drawn in uncollected and pending cells of the mosaic)."
         }
       ]
     },
@@ -203,6 +203,12 @@
       "id": "offchain",
       "title": "Off-chain",
       "items": [
+        {
+          "title": "AI agents",
+          "slug": "ai-agents",
+          "path": "/docs/offchain/ai-agents",
+          "description": "One entry point for agents, indexers, and bots: which files to fetch, which reads to call, which events to watch, and which endpoints exist."
+        },
         {
           "title": "Indexer (GraphQL)",
           "slug": "indexer",
