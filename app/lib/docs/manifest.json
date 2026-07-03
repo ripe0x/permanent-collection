@@ -1,0 +1,251 @@
+{
+  "title": "Protocol reference",
+  "sections": [
+    {
+      "id": "introduction",
+      "title": "Introduction",
+      "items": [
+        {
+          "title": "Overview",
+          "slug": "overview",
+          "path": "/docs/introduction/overview",
+          "description": "What the protocol is, how the loop works, and how this reference is organized."
+        },
+        {
+          "title": "Addresses",
+          "slug": "addresses",
+          "path": "/docs/introduction/addresses",
+          "description": "Every protocol contract on Ethereum mainnet, with ABI and reference links."
+        },
+        {
+          "title": "How to read these docs",
+          "slug": "conventions",
+          "path": "/docs/introduction/conventions",
+          "description": "Conventions used across the reference, and where the machine-readable versions live."
+        }
+      ]
+    },
+    {
+      "id": "contracts",
+      "title": "Contracts",
+      "items": [
+        {
+          "title": "The $111 token",
+          "slug": "the-111-token",
+          "path": "/docs/contracts/the-111-token",
+          "description": "The protocol's ERC20, its official pool, the swap skim, and the venue-scoped transfer tax."
+        },
+        {
+          "title": "Skim hook (ArtCoinsHookSkimFee)",
+          "slug": "skim-hook",
+          "path": "/docs/contracts/skim-hook",
+          "description": "The V4 hook on the official pool. Takes the 6% skim on swap volume, splits it three ways at swap time, and attests official-pool buys tax-exempt."
+        },
+        {
+          "title": "PermanentCollection",
+          "slug": "permanent-collection",
+          "path": "/docs/contracts/permanent-collection",
+          "description": "The records-only permanent core of the protocol."
+        },
+        {
+          "title": "Patron",
+          "slug": "patron",
+          "path": "/docs/contracts/patron",
+          "description": "Patron is the protocol's acquisition entry point."
+        },
+        {
+          "title": "ReturnAuctionModule",
+          "slug": "return-auction-module",
+          "path": "/docs/contracts/return-auction-module",
+          "description": "ReturnAuctionModule runs the 72-hour return auction that follows every acquisition."
+        },
+        {
+          "title": "ReturnAuctionEscrow",
+          "slug": "return-auction-escrow",
+          "path": "/docs/contracts/return-auction-escrow",
+          "description": "Transient settlement escrow that makes the 2017 CryptoPunks market record a real `PunkBought(seller, buyer, price)` for every cleared return auction, instead of a price-less `PunkTransfer`."
+        },
+        {
+          "title": "PunkVault",
+          "slug": "punk-vault",
+          "path": "/docs/contracts/punk-vault",
+          "description": "`PunkVault` is the immutable terminal custodian for vaulted Punks."
+        },
+        {
+          "title": "LiveBidAdapter",
+          "slug": "live-bid-adapter",
+          "path": "/docs/contracts/live-bid-adapter",
+          "description": "LiveBidAdapter is the single inflow governor for the live bid."
+        },
+        {
+          "title": "BuybackBurner",
+          "slug": "buyback-burner",
+          "path": "/docs/contracts/buyback-burner",
+          "description": "BuybackBurner converts queued ETH into $111 and removes it from circulation."
+        },
+        {
+          "title": "VaultBurnPool",
+          "slug": "vault-burn-pool",
+          "path": "/docs/contracts/vault-burn-pool",
+          "description": "Burn accumulator released on every vault-path settle."
+        },
+        {
+          "title": "ProtocolFeePhaseAdapter",
+          "slug": "protocol-fee-phase-adapter",
+          "path": "/docs/contracts/protocol-fee-phase-adapter",
+          "description": "Lean forwarder for the protocol leg of the official pool's fee skim."
+        },
+        {
+          "title": "ReferralPayout",
+          "slug": "referral-payout",
+          "path": "/docs/contracts/referral-payout",
+          "description": "Pull-based per-referrer ETH ledger for swap referrals on the official pool."
+        },
+        {
+          "title": "PunkVaultTitleAuction",
+          "slug": "title-auction",
+          "path": "/docs/contracts/title-auction",
+          "description": "One-shot, permissionless English auction that sells the Vault Title, ERC721 token id 111 on `PunkVault`."
+        },
+        {
+          "title": "PCSwapContext",
+          "slug": "pc-swap-context",
+          "path": "/docs/contracts/pc-swap-context",
+          "description": "Shared reentrancy-detection registry for the protocol."
+        },
+        {
+          "title": "TokenAdminPoker",
+          "slug": "token-admin-poker",
+          "path": "/docs/contracts/token-admin-poker",
+          "description": "Retained-admin holder of the $111 token's `tokenAdmin` role."
+        },
+        {
+          "title": "ProtocolAdmin",
+          "slug": "protocol-admin",
+          "path": "/docs/contracts/protocol-admin",
+          "description": "The protocol's single, time-locked admin role."
+        },
+        {
+          "title": "RendererRegistry",
+          "slug": "renderer-registry",
+          "path": "/docs/contracts/renderer-registry",
+          "description": "The stable address fronting the protocol's renderer."
+        },
+        {
+          "title": "PermanentCollectionMosaicRenderer",
+          "slug": "mosaic-renderer",
+          "path": "/docs/contracts/mosaic-renderer",
+          "description": "The shipped renderer, installed behind `RendererRegistry`."
+        },
+        {
+          "title": "PermanentCollectionProofRenderer",
+          "slug": "proof-renderer",
+          "path": "/docs/contracts/proof-renderer",
+          "description": "On-chain SVG + JSON renderer for the 111 Proof NFTs issued by `PunkVault` (token ids 0..110, where `tokenId == traitId` directly)."
+        },
+        {
+          "title": "PunkSvgFragmentCache",
+          "slug": "punk-svg-fragment-cache",
+          "path": "/docs/contracts/punk-svg-fragment-cache",
+          "description": "Public, permissionless on-chain cache of compact 24x24 SVG fragments derived from the canonical CryptoPunks pixel data."
+        },
+        {
+          "title": "TraitIconCache",
+          "slug": "trait-icon-cache",
+          "path": "/docs/contracts/trait-icon-cache",
+          "description": "Public, permissionless on-chain cache of compact SVG fragments for the 111 CryptoPunks trait icons, companion to `PunkSvgFragmentCache` (that one caches whole-Punk tiles for collected cells; this one caches the trait icons drawn in uncollec"
+        }
+      ]
+    },
+    {
+      "id": "guides",
+      "title": "Guides",
+      "items": [
+        {
+          "title": "Accept the live bid",
+          "slug": "accept-the-live-bid",
+          "path": "/docs/guides/accept-the-live-bid",
+          "description": "The end-to-end flow for selling an eligible Punk to the protocol at the live bid."
+        },
+        {
+          "title": "Bid on a return auction",
+          "slug": "bid-on-a-return-auction",
+          "path": "/docs/guides/bid-on-a-return-auction",
+          "description": "Find live return auctions, compute the minimum bid, place and settle bids, and collect refunds."
+        },
+        {
+          "title": "Run a keeper",
+          "slug": "run-a-keeper",
+          "path": "/docs/guides/run-a-keeper",
+          "description": "The permissionless calls that keep value moving through the protocol, how to check readiness off-chain, and a minimal viem loop that sends them when profitable."
+        },
+        {
+          "title": "Swap with referral attribution",
+          "slug": "swap-with-attribution",
+          "path": "/docs/guides/swap-with-attribution",
+          "description": "How to attach referral attribution to a $111 swap via V4 hookData, get credited in ReferralPayout on every swap, and claim the accrued ETH."
+        },
+        {
+          "title": "Contribute to the live bid",
+          "slug": "contribute-to-the-bid",
+          "path": "/docs/guides/contribute-to-the-bid",
+          "description": "Route ETH into the live bid with attributed contributions or bare sends to LiveBidAdapter."
+        },
+        {
+          "title": "Read the collection state",
+          "slug": "read-collection-state",
+          "path": "/docs/guides/read-collection-state",
+          "description": "The read surface an integrator or agent needs, contract by contract, plus how to decode the 111-bit trait masks and cast one-liners for the headline numbers."
+        }
+      ]
+    },
+    {
+      "id": "offchain",
+      "title": "Off-chain",
+      "items": [
+        {
+          "title": "Indexer (GraphQL)",
+          "slug": "indexer",
+          "path": "/docs/offchain/indexer",
+          "description": "The protocol's Ponder indexer, every table it maintains, the contract events that feed each one, and example GraphQL queries."
+        },
+        {
+          "title": "REST endpoints",
+          "slug": "rest-api",
+          "path": "/docs/offchain/rest-api",
+          "description": "The site's public read endpoints under /api, their parameters, response shapes, and caching behavior."
+        },
+        {
+          "title": "ABIs and the protocol manifest",
+          "slug": "abis-and-manifest",
+          "path": "/docs/offchain/abis-and-manifest",
+          "description": "The machine-readable entry points, the protocol manifest, served ABI files, llms.txt, and the docs search index, with a viem loading example."
+        }
+      ]
+    },
+    {
+      "id": "reference",
+      "title": "Reference",
+      "items": [
+        {
+          "title": "Access control",
+          "slug": "access-control",
+          "path": "/docs/reference/access-control",
+          "description": "Every state-changing function and who may call it."
+        },
+        {
+          "title": "Errors index",
+          "slug": "errors",
+          "path": "/docs/reference/errors",
+          "description": "Every custom error, its contract, and the condition that raises it."
+        },
+        {
+          "title": "Events index",
+          "slug": "events",
+          "path": "/docs/reference/events",
+          "description": "Every event the protocol emits, grouped by contract."
+        }
+      ]
+    }
+  ]
+}

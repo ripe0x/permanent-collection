@@ -1,0 +1,544 @@
+/* ──────────────────────────────────────────────────────────────────────
+   /docs — protocol reference shell.
+
+   Full-mono register: the technical wing of the site. Reuses the global
+   design tokens (--bg/--ink/--muted/--line/--panel/--mono); no new colors
+   beyond the shiki github-light syntax palette embedded in the generated
+   HTML.
+   ────────────────────────────────────────────────────────────────────── */
+
+.docs-root {
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ─── Top bar ────────────────────────────────────────────────────────── */
+
+.docs-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 24px;
+    height: 56px;
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 30;
+}
+
+.docs-topbar-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.docs-topbar-brand .docs-topbar-sub {
+    color: var(--muted);
+    font-weight: 400;
+    letter-spacing: 0.1em;
+}
+
+.docs-topbar-links {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+}
+
+.docs-topbar-links a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.docs-menu-button {
+    display: none;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border: 1px solid var(--line);
+    padding: 6px 10px;
+    background: var(--bg);
+}
+
+/* ─── Shell grid ─────────────────────────────────────────────────────── */
+
+.docs-shell {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    flex: 1;
+    max-width: 1440px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ─── Sidebar ────────────────────────────────────────────────────────── */
+
+.docs-sidebar {
+    border-right: 1px solid var(--line);
+    padding: 28px 20px 64px;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.docs-sidebar-section {
+    margin-bottom: 28px;
+}
+
+.docs-sidebar-section-title {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 10px;
+}
+
+.docs-sidebar-item {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    padding: 4px 0 4px 12px;
+    border-left: 2px solid transparent;
+    line-height: 1.45;
+}
+
+.docs-sidebar-item:hover {
+    color: var(--ink);
+}
+
+.docs-sidebar-item.active {
+    color: var(--ink);
+    border-left-color: var(--ink);
+    font-weight: 500;
+}
+
+/* ─── Search ─────────────────────────────────────────────────────────── */
+
+.docs-search {
+    position: relative;
+    margin-bottom: 28px;
+}
+
+.docs-search input {
+    width: 100%;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink);
+}
+
+.docs-search input::placeholder {
+    color: var(--muted);
+}
+
+.docs-search-results {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 320px;
+    max-width: 76vw;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: var(--bg);
+    border: 1px solid var(--ink);
+    z-index: 40;
+    box-shadow: 4px 4px 0 rgba(17, 17, 17, 0.08);
+}
+
+.docs-search-result {
+    display: block;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+}
+
+.docs-search-result:last-child {
+    border-bottom: none;
+}
+
+.docs-search-result:hover,
+.docs-search-result.selected {
+    background: var(--panel);
+}
+
+.docs-search-result .docs-search-page {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: block;
+}
+
+.docs-search-result .docs-search-heading {
+    font-weight: 500;
+}
+
+.docs-search-result .docs-search-text {
+    color: var(--muted);
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.docs-search-empty {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* ─── Content + TOC ──────────────────────────────────────────────────── */
+
+.docs-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 210px;
+    gap: 48px;
+    padding: 40px 48px 96px;
+}
+
+.docs-article {
+    max-width: 780px;
+    min-width: 0;
+}
+
+.docs-toc {
+    position: sticky;
+    top: 96px;
+    align-self: start;
+    font-size: 12px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.docs-toc-title {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+
+.docs-toc a {
+    display: block;
+    color: var(--muted);
+    padding: 3px 0;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.docs-toc a.depth-3 {
+    padding-left: 14px;
+}
+
+.docs-toc a:hover,
+.docs-toc a.active {
+    color: var(--ink);
+}
+
+/* ─── Prev / next footer ─────────────────────────────────────────────── */
+
+.docs-pagenav {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 72px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+}
+
+.docs-pagenav a {
+    max-width: 46%;
+}
+
+.docs-pagenav a:hover .docs-pagenav-title {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.docs-pagenav-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+}
+
+.docs-pagenav-next {
+    text-align: right;
+    margin-left: auto;
+}
+
+/* ─── Article typography ─────────────────────────────────────────────── */
+
+.docs-article h1 {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 20px;
+}
+
+.docs-article h2 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin: 56px 0 18px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+}
+
+.docs-article h1:first-child + h2,
+.docs-article h1 + h2 {
+    border-top: none;
+    padding-top: 0;
+}
+
+.docs-article h3 {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 6px 10px;
+    margin: 40px 0 12px;
+}
+
+.docs-article h4 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 28px 0 10px;
+}
+
+.docs-article h1 a,
+.docs-article h2 a,
+.docs-article h3 a,
+.docs-article h4 a {
+    color: inherit;
+}
+
+.docs-article h2 a:hover::after,
+.docs-article h3 a:hover::after {
+    content: ' #';
+    color: var(--muted);
+}
+
+.docs-article p {
+    margin: 0 0 16px;
+}
+
+.docs-article ul,
+.docs-article ol {
+    margin: 0 0 16px;
+    padding-left: 22px;
+}
+
+.docs-article li {
+    margin-bottom: 6px;
+}
+
+.docs-article a {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--line);
+}
+
+.docs-article a:hover {
+    text-decoration-color: var(--ink);
+}
+
+.docs-article strong {
+    font-weight: 600;
+}
+
+.docs-article blockquote {
+    border-left: 2px solid var(--line);
+    padding-left: 16px;
+    color: var(--muted);
+    margin: 0 0 16px;
+}
+
+.docs-article hr {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 40px 0;
+}
+
+/* Inline code */
+.docs-article code {
+    font-family: var(--mono);
+    font-size: 0.92em;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1px 5px;
+    border-radius: 2px;
+    word-break: break-word;
+}
+
+/* ─── Code blocks (shiki output wrapped in .doc-code) ────────────────── */
+
+.doc-code {
+    position: relative;
+    border: 1px solid var(--line);
+    margin: 0 0 18px;
+}
+
+.doc-code pre {
+    margin: 0;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    line-height: 1.65;
+    background-color: #fafafa !important;
+}
+
+.doc-code pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    word-break: normal;
+}
+
+.doc-code-lang {
+    position: absolute;
+    top: 8px;
+    right: 64px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    user-select: none;
+    pointer-events: none;
+}
+
+.doc-copy {
+    position: absolute;
+    top: 5px;
+    right: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid transparent;
+    padding: 3px 6px;
+    background: transparent;
+}
+
+.doc-copy:hover {
+    color: var(--ink);
+    border-color: var(--line);
+    background: var(--bg);
+}
+
+/* ─── Tables ─────────────────────────────────────────────────────────── */
+
+.docs-article table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 20px;
+    font-size: 13px;
+}
+
+.docs-article th {
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 1px solid var(--ink);
+    padding: 8px 16px 8px 0;
+    white-space: nowrap;
+}
+
+.docs-article td {
+    border-bottom: 1px solid var(--line);
+    padding: 8px 16px 8px 0;
+    vertical-align: top;
+}
+
+.docs-article td code {
+    overflow-wrap: break-word;
+}
+
+/* First column is always a name/label; keep it on one line and let the
+   prose columns absorb the wrapping. */
+.docs-article td:first-child {
+    white-space: nowrap;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────── */
+
+@media (max-width: 1160px) {
+    .docs-main {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .docs-toc {
+        display: none;
+    }
+}
+
+@media (max-width: 860px) {
+    .docs-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .docs-topbar {
+        padding: 0 16px;
+    }
+    .docs-topbar-brand {
+        letter-spacing: 0.08em;
+        min-width: 0;
+    }
+    .docs-topbar-brand .docs-topbar-sub {
+        display: none;
+    }
+    .docs-menu-button {
+        display: block;
+    }
+    .docs-sidebar {
+        display: none;
+        position: fixed;
+        top: 56px;
+        left: 0;
+        width: min(320px, 86vw);
+        background: var(--bg);
+        border-right: 1px solid var(--ink);
+        z-index: 25;
+    }
+    .docs-sidebar.open {
+        display: block;
+    }
+    .docs-main {
+        padding: 28px 20px 80px;
+    }
+    .docs-article h1 {
+        font-size: 24px;
+    }
+}

@@ -559,6 +559,15 @@ docs/MISSION_PROPERTIES.md  Mission / liveness / equilibrium properties.
 docs/RENDERER_CACHE.md    Trait-icon cache operating model.
 docs/ARTCOINS_PIN.md      artcoins submodule pin + how to verify it.
 docs/RUN_LOCAL.md         Local fork bring-up + walkthrough.
+docs/reference/           GENERATED per-contract API reference (functions,
+                          events, errors, access control) + guides, served
+                          on the site at /docs. Edit _prose/ + _pages/ and
+                          run `pnpm generate:docs` — never the output pages
+                          (see docs/reference/README.md; prose format in
+                          docs/reference/_prose/SPEC.md). The generator also
+                          emits app/lib/docs/{manifest,content}.json and
+                          app/public/{abis/,protocol-manifest.json,llms.txt,
+                          docs-search-index.json}.
 README.md, DESCRIPTION.md  Public-facing copy.
 ```
 

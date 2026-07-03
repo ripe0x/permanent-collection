@@ -250,6 +250,13 @@ export const abi = [
   },
   {
     "type": "function",
+    "name": "mintTitle",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "payoutRecipient",
     "inputs": [],
     "outputs": [
@@ -309,6 +316,19 @@ export const abi = [
   {
     "type": "function",
     "name": "settled",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "titleMinted",
     "inputs": [],
     "outputs": [
       {

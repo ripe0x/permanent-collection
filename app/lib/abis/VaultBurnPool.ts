@@ -66,6 +66,32 @@ export const abi = [
   },
   {
     "type": "function",
+    "name": "setup",
+    "inputs": [
+      {
+        "name": "_token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setupFinalized",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "sweep",
     "inputs": [],
     "outputs": [
@@ -76,6 +102,38 @@ export const abi = [
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "token",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "Finalized",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SidePoolTaxBurned",
+    "inputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -92,12 +150,17 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "ForwardFailed",
+    "name": "AlreadyFinalized",
     "inputs": []
   },
   {
     "type": "error",
     "name": "InSwap",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotDeployer",
     "inputs": []
   },
   {

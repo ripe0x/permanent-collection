@@ -47,7 +47,8 @@ export async function Footer() {
                         <Link href="/token">{TOKEN_SYMBOL} token</Link>
                         <Link href="/faq">FAQ</Link>
                         <Link href="/protocol">Protocol</Link>
-                        <Link href="/contracts">Contracts</Link>
+                        <Link href="/docs">Docs</Link>
+                        <Link href="/docs/introduction/addresses">Contracts</Link>
                         <DexscreenerLink token={token} />
                         <a href="https://artcoins.art" target="_blank" rel="noreferrer">
                             artcoins
@@ -111,7 +112,7 @@ function PreLaunchFooter() {
                         <Link href="/proofs">Proofs</Link>
                         <Link href="/token">Token</Link>
                         <Link href="/protocol">Protocol</Link>
-                        <Link href="/builders">Builders</Link>
+                        <Link href="/docs">Docs</Link>
                         <a href="https://artcoins.art" target="_blank" rel="noreferrer">
                             artcoins
                         </a>

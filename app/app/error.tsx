@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {useEffect} from 'react';
 
 /** Page-level error boundary. The brief: any stuck state resolves to a
@@ -50,9 +51,9 @@ export default function Error({error, reset}: {error: Error & {digest?: string};
                 <button className="primary" onClick={reset}>
                     Try again
                 </button>
-                <a className="secondary" href="/contracts">
+                <Link className="secondary" href="/docs/introduction/addresses">
                     View contracts
-                </a>
+                </Link>
             </div>
         </section>
     );

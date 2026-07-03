@@ -354,7 +354,7 @@ export default function TokenPage() {
                                     <p>Don&apos;t trust the copy, read the chain:</p>
                                     <ul className="tok-links">
                                         <li>
-                                            <Link href="/contracts">All contract addresses →</Link>
+                                            <Link href="/docs/introduction/addresses">All contract addresses →</Link>
                                         </li>
                                         {tokenUrl && (
                                             <li>

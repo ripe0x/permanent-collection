@@ -1,0 +1,158 @@
+---
+title: Indexer (GraphQL)
+description: The protocol's Ponder indexer, every table it maintains, the contract events that feed each one, and example GraphQL queries.
+---
+
+# Indexer (GraphQL)
+
+The protocol runs a [Ponder](https://ponder.sh) indexer that follows every
+protocol contract from the deploy block and maintains the tables below. It
+is the right data source for anything historical or aggregate: acquisition
+history, auction bid logs, burn totals, referral ledgers. Current single
+values (the live bid, an auction's high bid) are better read from the chain
+directly, which the indexer necessarily lags by a block or so.
+
+The indexer's full source lives in the public repo under
+[`indexer/`](https://github.com/ripe0x/permanent-collection/tree/master/indexer):
+`ponder.schema.ts` defines the tables, `src/index.ts` the event handlers.
+
+## Endpoint
+
+The GraphQL endpoint is deployment-configured, not a fixed public URL. The
+site's server reads it from the `INDEXER_URL` environment variable and
+queries it server-side only; the browser never talks to the indexer
+directly. To run your own instance, point the Ponder app at a mainnet RPC
+and it serves the standard Ponder GraphQL API at both `/` and `/graphql`
+(plus `/health` and `/ready`).
+
+Ponder's GraphQL exposes each table twice: a singular field that takes the
+primary key (`returnAuction(id: 5822)`, `protocolCounter(id: "global")`)
+and a pluralized connection with `where` / `orderBy` / `orderDirection` /
+`limit` arguments whose rows sit under `items`
+(`returnAuctions(...) { items { ... } }`).
+
+## Tables
+
+### Acquisitions and the live bid
+
+| Table | What it records | Key fields | Fed by |
+| --- | --- | --- | --- |
+| `acquisition` | Per-Punk latest acquisition, keyed by `punkId` and overwritten on re-acquisition of a returned Punk (mirrors the on-chain per-Punk readers) | `punkId`, `targetTraitId`, `mask`, `acquirer`, `originalSeller`, `priceWei`, `custody` (`InReturnAuction` / `ReturnedToMarket` / `Vaulted`), `acquisitionCount`, `latestHistoryId` | `PermanentCollection.AcquisitionRecorded`; custody patched by `CustodyUpdated` |
+| `acquisitionHistory` | Append-only log, one row per acquisition ever recorded (never overwritten) | `punkId`, `seq` (0-based per-Punk index), `targetTraitId`, `priceWei`, `custody` (this acquisition's terminal outcome), `timestamp`, `txHash` | `PermanentCollection.AcquisitionRecorded`; custody patched by `CustodyUpdated` |
+| `traitTrial` | Per-trait count of acquisitions that have targeted it (the input to the return-auction reserve escalation) | `traitId`, `count`, `lastPunkId` | `PermanentCollection.AcquisitionRecorded` |
+| `traitTransition` | Trait state transitions | `kind` (`Pending` / `Collected`), `punkId`, `bits` (the trait bitmask) | `PermanentCollection.TraitsPending` / `TraitsCollected` |
+| `bidEvent` | Every live-bid flow event: acceptances and inflows | `kind` (`Accepted` / `ListingAccepted` / `BareTopUp` / `Contribution` / `PoolReplenished`), `punkId`, `seller`, `caller`, `amount`, `finderFee`, `referrer`, `tag`, `referrerShare` | `Patron.BidAccepted` / `ListingAccepted`; `LiveBidAdapter.BareTopUp` / `Contribution` / `PoolReplenished` |
+| `allowlistEntry` | Patron's seller allowlist, keyed by seller address | `seller`, `active`, `addedAt`, `removedAt` | `Patron.AllowedSellerAdded` / `AllowedSellerRemoved` |
+
+### Return auctions
+
+| Table | What it records | Key fields | Fed by |
+| --- | --- | --- | --- |
+| `returnAuction` | Per-Punk auction state, keyed by `punkId`; reset when a returned Punk is re-auctioned | `punkId`, `targetTraitId`, `acquisitionCost`, `reserveWei`, `startedAt`, `endsAt`, `highBidWei`, `highBidder`, `extensions`, `settled`, `outcome` (`Cleared` / `Vaulted`), `bountyShareWei`, `burnShareWei` | `ReturnAuctionModule.ReturnAuctionStarted` / `BidPlaced` / `ReturnAuctionExtended` / `ReturnAuctionCleared` / `PunkVaulted` |
+| `bid` | Append-only return-auction bid log | `punkId`, `bidder`, `amount`, `endsAt`, `extended` (whether this bid triggered an anti-snipe extension) | `ReturnAuctionModule.BidPlaced` |
+| `refund` | Outbid-refund pull-queue activity | `kind` (`Queued` / `Withdrawn`), `bidder`, `amount` | `ReturnAuctionModule.RefundQueued` / `RefundWithdrawn` |
+
+### Vault and Proofs
+
+| Table | What it records | Key fields | Fed by |
+| --- | --- | --- | --- |
+| `vaultedPunk` | One row per Punk permanently vaulted | `punkId`, `collectedTraitId`, `vaultedAtBlock`, `txHash` | `ReturnAuctionModule.PunkVaulted` |
+| `proof` | One row per Proof NFT (token ids 0..110, `tokenId == traitId`), minted on the first vaulting of a trait; the mint record is immutable, `currentOwner` follows transfers | `tokenId`, `traitId`, `punkId`, `recipient` (originalSeller at mint), `currentOwner`, `sequence` (1-based collection order), `mintedAt` | `PunkVault.ProofMinted`; owner patched by `PunkVault.Transfer` |
+| `punkVaultTransfer` | Append-only ERC721 transfer log for PunkVault tokens (the 111 Proofs plus the Vault Title, token id 111) | `tokenId`, `from`, `to`, `txHash` | `PunkVault.Transfer` |
+
+### Fees and burns
+
+| Table | What it records | Key fields | Fed by |
+| --- | --- | --- | --- |
+| `adapterSweep` | LiveBidAdapter forwards into Patron; keeper rewards land as sibling rows (`-reward` id suffix) joinable by `txHash` | `ethSwept`, `ethForwarded`, `ethBuffered`, `keeper`, `keeperReward` | `LiveBidAdapter.Swept` / `KeeperReward` |
+| `vaultBurnSweep` | VaultBurnPool releases to BuybackBurner on vault-path settles | `amount`, `txHash` | `VaultBurnPool.Swept` |
+| `burnerDeposit` | ETH arriving at BuybackBurner | `source`, `amount`, `remainingEth` | `BuybackBurner.BurnEthDeposited` |
+| `burnStep` | Each ETH → $111 → `0xdead` burn step; execution rewards land as sibling `-reward` rows | `ethSpent`, `tokensBurned`, `remainingEth`, `executionReward`, `caller` | `BuybackBurner.TokensBurned` / `ExecutionRewardPaid` |
+| `parameterChange` | Admin parameter retunes on the two contracts that still have setters | `contract` (`LiveBidAdapter` / `BuybackBurner`), `key`, `oldValue`, `newValue` | `LiveBidAdapter.ParameterChanged` / `BuybackBurner.ParameterChanged` |
+
+### Title auction
+
+| Table | What it records | Key fields | Fed by |
+| --- | --- | --- | --- |
+| `titleAuctionState` | Singleton row (`id: "global"`) tracking the Vault Title auction lifecycle | `kickedOff`, `settled`, `endsAt`, `highBidWei`, `highBidder`, `winner`, `finalHighBidWei`, `restartCount`, `extensionsThisRound` | `PunkVaultTitleAuction.Kickoff` / `Bid` / `Extended` / `Settled` / `SettledNoBidder` |
+| `titleAuctionBid` | Append-only Title bid log | `bidder`, `amount`, `endsAt`, `extended` | `PunkVaultTitleAuction.Bid` |
+| `titleAuctionRefund` | Refund pull-queue activity | `kind` (`Queued` / `Withdrawn`), `bidder`, `amount` | `PunkVaultTitleAuction.RefundQueued` / `RefundWithdrawn` |
+| `titleAuctionProceeds` | Proceeds pull-queue activity | `kind` (`Queued` / `Withdrawn`), `recipient`, `amount` | `PunkVaultTitleAuction.ProceedsQueued` / `ProceedsWithdrawn` |
+
+### Referrals
+
+| Table | What it records | Key fields | Fed by |
+| --- | --- | --- | --- |
+| `referrer` | Per-referrer aggregate, keyed by address; `balance` mirrors `ReferralPayout.balances(referrer)` on chain | `balance` (= `totalCredited - totalClaimed`), `totalCredited`, `totalClaimed`, `lastCreditedAt`, `lastClaimedAt` | `ReferralPayout.ReferralCredited` / `ReferralClaimed` |
+| `referralCredit` | Append-only credit log (one row per attributed-swap payout) | `referrer`, `amount`, `txHash` | `ReferralPayout.ReferralCredited` |
+| `referralClaim` | Append-only claim log | `referrer`, `amount`, `txHash` | `ReferralPayout.ReferralClaimed` |
+
+### Counters
+
+| Table | What it records | Key fields | Fed by |
+| --- | --- | --- | --- |
+| `protocolCounter` | Singleton row (`id: "global"`) of protocol-wide headline numbers, cheaper than aggregating the event tables | `collectedCount`, `acquisitionCount`, `vaultedCount`, `clearedCount`, `proofsMinted`, `totalEthBurned`, `totalTokensBurned`, `totalBountyInflowsWei`, `totalVaultBurnSweptWei`, `totalContributionVolumeWei`, `totalSwapVolumeWei`, `swapCount` | bumped by many handlers; the swap volume and count come from the skim hook's per-swap `SkimSplit` events, filtered to the official pool |
+
+Rows in the event-log tables are keyed `<txHash>-<logIndex>` unless noted;
+per-entity tables key on the natural id (`punkId`, `traitId`, `tokenId`, an
+address). Timestamps are unix seconds, amounts are wei, both serialized as
+strings in GraphQL responses.
+
+## Example queries
+
+Headline protocol stats:
+
+```graphql
+{
+  protocolCounter(id: "global") {
+    collectedCount
+    vaultedCount
+    clearedCount
+    proofsMinted
+    totalEthBurned
+    totalTokensBurned
+    totalSwapVolumeWei
+    swapCount
+  }
+}
+```
+
+Open return auctions, soonest-ending first:
+
+```graphql
+{
+  returnAuctions(
+    where: {settled: false}
+    orderBy: "endsAt"
+    orderDirection: "asc"
+  ) {
+    items {
+      punkId
+      targetTraitId
+      reserveWei
+      highBidWei
+      highBidder
+      endsAt
+      extensions
+    }
+  }
+}
+```
+
+Every Proof minted so far, in collection order, with current holders:
+
+```graphql
+{
+  proofs(orderBy: "sequence", orderDirection: "asc", limit: 111) {
+    items {
+      tokenId
+      traitId
+      punkId
+      recipient
+      currentOwner
+      sequence
+      mintedAt
+    }
+  }
+}
+```

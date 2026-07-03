@@ -51,8 +51,11 @@ const CONTRACTS = [
     'PunkVaultTitleAuction',
     'RendererRegistry',
     'PermanentCollectionMosaicRenderer',
+    'PermanentCollectionProofRenderer',
     'PunkSvgFragmentCache',
     'TraitIconCache',
+    // Settlement escrow (module-only surface; documented in docs/reference)
+    'ReturnAuctionEscrow',
 ] as const;
 
 const EXTERNAL = [

@@ -1,0 +1,125 @@
+---
+contract: ProtocolFeePhaseAdapter
+slug: protocol-fee-phase-adapter
+deploymentsKey: protocolFeePhaseAdapter
+title: ProtocolFeePhaseAdapter
+---
+
+# summary
+
+Lean forwarder for the protocol leg of the official pool's fee skim. On
+every swap, the artcoins skim hook splits its 6% baseline skim into a
+live-bid leg and a protocol leg; the protocol leg (about 16.67% of the skim,
+so about 1% of swap volume, less any referral slice paid out of it) is
+deposited into the artcoins fee escrow under this adapter's address. The
+permissionless `sweep()` claims that escrowed ETH and forwards the adapter's
+full balance to the protocol fee controller, which applies its 86.67%
+treasury / 13.33% LAYER-burn split.
+
+That's the whole surface: two immutable addresses set at construction, one
+permissionless drain, a passive `receive()`. No admin, no setters, no
+withdrawal path, no held state between sweeps beyond the ETH balance
+itself.
+
+# concepts
+
+### Escrow-pull, not hook-push
+
+The hook never sends ETH directly to this adapter during a swap. It deposits
+the protocol leg into the fee escrow under this adapter's address, keeping
+the per-swap flush cheap and the adapter out of the swap's call graph.
+Anyone can then batch an arbitrary number of swaps' worth of accrual into
+one `sweep()`. The escrow claim inside `sweep` is wrapped in `try/catch`: a
+reverting escrow emits `ClaimFailed` and the sweep still forwards whatever
+ETH already sits on the adapter, so a transient escrow issue never blocks
+forward progress. The forward to the controller, by contrast, is strict: if
+the controller rejects the ETH the whole call reverts `ForwardFailed` and
+the balance stays here for a retry, rather than being stranded silently.
+
+### Checking and draining the accrual
+
+```bash
+# ETH already claimed onto the adapter (wei)
+cast balance {{addr:protocolFeePhaseAdapter}} \
+  --rpc-url https://ethereum-rpc.publicnode.com
+
+# ETH still waiting in the fee escrow under the adapter's address
+cast call <feeEscrow> "availableFees(address,address)(uint256)" \
+  {{addr:protocolFeePhaseAdapter}} 0x0000000000000000000000000000000000000000 \
+  --rpc-url https://ethereum-rpc.publicnode.com
+
+# drain both to the controller (permissionless)
+cast send {{addr:protocolFeePhaseAdapter}} "sweep()" \
+  --rpc-url https://ethereum-rpc.publicnode.com --private-key $PRIVATE_KEY
+```
+
+Read `<feeEscrow>` from the adapter itself with
+`cast call {{addr:protocolFeePhaseAdapter}} "feeEscrow()(address)"`. The
+`address(0)` second argument is the escrow's native-ETH token slot.
+
+## function sweep
+
+access: permissionless
+
+Claims the adapter's accrued native-ETH balance from the fee escrow
+(`claim(address(this), address(0))`, best-effort: a reverting claim emits
+`ClaimFailed` and execution continues), then forwards the adapter's entire
+ETH balance to the controller. Returns silently if the balance is zero after
+the claim. Reverts `ForwardFailed` if the controller rejects the transfer,
+leaving the balance intact for the next attempt. Emits `Forwarded` on
+success. There is no caller reward; keepers, the frontend, or anyone else
+can invoke it whenever accrual is worth the gas. Decorated `notInSwap` (a
+no-op unless a Design B extension is ever bound).
+
+## receive
+
+access: permissionless
+
+Accepts native ETH from any sender with no state mutation and no event. The
+hook doesn't use this path (it deposits into the escrow instead); it exists
+to catch direct or stray sends, which simply join the balance forwarded by
+the next `sweep`. ETH sent here can only exit toward the controller.
+
+## function controller
+
+The immutable protocol fee controller address (PC's dedicated artcoins
+`ProtocolFeeController` instance, configured 86.67% treasury / 13.33% LAYER
+burn). Every sweep forwards to it. Set at construction, never changes.
+
+## function feeEscrow
+
+The immutable artcoins fee escrow address the hook deposits the protocol leg
+into, under this adapter's address. `sweep` claims from it before
+forwarding. Set at construction, never changes.
+
+## event ClaimFailed
+
+Emitted when the escrow `claim` inside `sweep` reverts, with the escrow
+address. Non-fatal: the same call still forwards whatever ETH is already on
+the adapter. Repeated occurrences point at an escrow-side problem worth
+investigating; the escrowed accrual itself is untouched and claimable once
+the escrow behaves again.
+
+## event Forwarded
+
+Emitted on every successful sweep, with the recipient (the controller,
+indexed) and the amount forwarded. An indexer can sum these for the total
+protocol-leg ETH delivered to the controller.
+
+## error ForwardFailed
+
+The controller rejected the ETH transfer at the end of `sweep`. The whole
+call reverted, so the balance remains on the adapter; retry once the
+controller accepts ETH again.
+
+## error InSwap
+
+A `notInSwap`-decorated function was entered while `PCSwapContext` reports a
+swap in progress. Unreachable at launch (no authorized extension is bound,
+so the flag is permanently false); relevant only if a Design B extension is
+ever activated.
+
+## error ZeroAddress
+
+Constructor-only: raised when the adapter is deployed with a zero controller
+or escrow address. Never reachable on the live deployment.

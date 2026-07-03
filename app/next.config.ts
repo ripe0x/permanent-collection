@@ -101,8 +101,13 @@ const nextConfig: NextConfig = {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   async redirects() {
-    // The accept flow lives at /bid now; keep old links working.
-    return [{source: "/accept", destination: "/bid", permanent: true}];
+    return [
+      // The accept flow lives at /bid now; keep old links working.
+      {source: "/accept", destination: "/bid", permanent: true},
+      // Absorbed into the protocol reference at /docs.
+      {source: "/contracts", destination: "/docs/introduction/addresses", permanent: true},
+      {source: "/builders", destination: "/docs", permanent: true},
+    ];
   },
 };
 

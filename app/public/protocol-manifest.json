@@ -1,0 +1,134 @@
+{
+  "name": "PERMANENT COLLECTION",
+  "chainId": 1,
+  "deployBlock": 25270161,
+  "canonicalPoolId": "0xf860d8f4896aed6cc1c68d234ba728680902f0ae43a459fbee6f6baa8036f795",
+  "docs": "/docs",
+  "llms": "/llms.txt",
+  "contracts": {
+    "PermanentCollection": {
+      "address": "0x59607d4d92a57EAa8544b2AdE7b014F8785AAf34",
+      "abi": "/abis/PermanentCollection.json",
+      "docs": "/docs/contracts/permanent-collection",
+      "role": "The records-only permanent core of the protocol."
+    },
+    "Patron": {
+      "address": "0xC8ED01ffd957f5a62b1526d58E309c8bf2BB4A4c",
+      "abi": "/abis/Patron.json",
+      "docs": "/docs/contracts/patron",
+      "role": "Patron is the protocol's acquisition entry point."
+    },
+    "ReturnAuctionModule": {
+      "address": "0x2ced1CA0BC7996c3dFB3D4E685d9d9E7405A7aCe",
+      "abi": "/abis/ReturnAuctionModule.json",
+      "docs": "/docs/contracts/return-auction-module",
+      "role": "ReturnAuctionModule runs the 72-hour return auction that follows every acquisition."
+    },
+    "PunkVault": {
+      "address": "0x3614692b8C8B22890D66a5DfcBc6F6eAdEdE036f",
+      "abi": "/abis/PunkVault.json",
+      "docs": "/docs/contracts/punk-vault",
+      "role": "`PunkVault` is the immutable terminal custodian for vaulted Punks."
+    },
+    "LiveBidAdapter": {
+      "address": "0x8C72FBc2bB32e76aa54243F76745266a0F92CD01",
+      "abi": "/abis/LiveBidAdapter.json",
+      "docs": "/docs/contracts/live-bid-adapter",
+      "role": "LiveBidAdapter is the single inflow governor for the live bid."
+    },
+    "BuybackBurner": {
+      "address": "0xf8a2D6F8c58626eE3BcDb4638F2a2f30Fe021242",
+      "abi": "/abis/BuybackBurner.json",
+      "docs": "/docs/contracts/buyback-burner",
+      "role": "BuybackBurner converts queued ETH into $111 and removes it from circulation."
+    },
+    "VaultBurnPool": {
+      "address": "0xf5c3eC7e185d0a592264791D523496EA6e368753",
+      "abi": "/abis/VaultBurnPool.json",
+      "docs": "/docs/contracts/vault-burn-pool",
+      "role": "Burn accumulator released on every vault-path settle."
+    },
+    "ProtocolFeePhaseAdapter": {
+      "address": "0xed3E9D3Bf693372060b7ce62aDB49650145b2ba9",
+      "abi": "/abis/ProtocolFeePhaseAdapter.json",
+      "docs": "/docs/contracts/protocol-fee-phase-adapter",
+      "role": "Lean forwarder for the protocol leg of the official pool's fee skim."
+    },
+    "ReferralPayout": {
+      "address": "0xB03Cbd862F47059e928C113182814c676eA29d4c",
+      "abi": "/abis/ReferralPayout.json",
+      "docs": "/docs/contracts/referral-payout",
+      "role": "Pull-based per-referrer ETH ledger for swap referrals on the official pool."
+    },
+    "PunkVaultTitleAuction": {
+      "address": "0xA7139153A88DA7C2E2304F5Ce39026676Ebf45fd",
+      "abi": "/abis/PunkVaultTitleAuction.json",
+      "docs": "/docs/contracts/title-auction",
+      "role": "One-shot, permissionless English auction that sells the Vault Title, ERC721 token id 111 on `PunkVault`."
+    },
+    "PCSwapContext": {
+      "address": "0xf271a4aFAA206f5EBE392CC68845aB6F11Af2Ed3",
+      "abi": "/abis/PCSwapContext.json",
+      "docs": "/docs/contracts/pc-swap-context",
+      "role": "Shared reentrancy-detection registry for the protocol."
+    },
+    "TokenAdminPoker": {
+      "address": "0xA96a11257890ED1C43C16c098E286e18e45E6258",
+      "abi": "/abis/TokenAdminPoker.json",
+      "docs": "/docs/contracts/token-admin-poker",
+      "role": "Retained-admin holder of the $111 token's `tokenAdmin` role."
+    },
+    "ProtocolAdmin": {
+      "address": "0x71112262e8A5825Cc9F201BDe8E370C05ec98339",
+      "abi": "/abis/ProtocolAdmin.json",
+      "docs": "/docs/contracts/protocol-admin",
+      "role": "The protocol's single, time-locked admin role."
+    },
+    "RendererRegistry": {
+      "address": "0x760421B7916917Ffd72ECeAa4c1F7ffC4D12eEc7",
+      "abi": "/abis/RendererRegistry.json",
+      "docs": "/docs/contracts/renderer-registry",
+      "role": "The stable address fronting the protocol's renderer."
+    },
+    "PermanentCollectionMosaicRenderer": {
+      "address": "0x40aa9edb0063ca5d12eef8A53be45F7e15a3Fe10",
+      "abi": "/abis/PermanentCollectionMosaicRenderer.json",
+      "docs": "/docs/contracts/mosaic-renderer",
+      "role": "The shipped renderer, installed behind `RendererRegistry`."
+    },
+    "PunkSvgFragmentCache": {
+      "address": "0x3ab4b628AB844a723235F08554C49B5Dd54c56BD",
+      "abi": "/abis/PunkSvgFragmentCache.json",
+      "docs": "/docs/contracts/punk-svg-fragment-cache",
+      "role": "Public, permissionless on-chain cache of compact 24x24 SVG fragments derived from the canonical CryptoPunks pixel data."
+    },
+    "TraitIconCache": {
+      "address": "0xCd7eE161a7aA9f49F7d970CF3B31fE5ac6D20Ca7",
+      "abi": "/abis/TraitIconCache.json",
+      "docs": "/docs/contracts/trait-icon-cache",
+      "role": "Public, permissionless on-chain cache of compact SVG fragments for the 111 CryptoPunks trait icons, companion to `PunkSvgFragmentCache` (that one caches whole-Punk tiles for collected cells; this one caches the trait icons drawn in uncollec"
+    }
+  },
+  "external": {
+    "token": {
+      "address": "0x61C9d89fe1212F6b55fF888816A151463287B8ae",
+      "label": "The $111 token (ArtCoinsToken)"
+    },
+    "hook": {
+      "address": "0x636c050296B5Cc528D8785169Bf8923716FCa9cc",
+      "label": "Skim hook (ArtCoinsHookSkimFee)"
+    },
+    "locker": {
+      "address": "0x866ea3Dc2bf7A3e77374619cf50EB697FA766aab",
+      "label": "Conversion locker (LP positions)"
+    },
+    "mevModule": {
+      "address": "0xb038D597365FfD108D63C265Bb0621444a1D8B83",
+      "label": "MEV module (ArtCoinsMevLinearSkim)"
+    },
+    "punksData": {
+      "address": "0x9cF9C8eA737A7d5157d3F4282aCe30880a7A117C",
+      "label": "PunksData (sealed trait dataset)"
+    }
+  }
+}

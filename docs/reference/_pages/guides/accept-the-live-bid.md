@@ -1,0 +1,293 @@
+---
+title: Accept the live bid
+description: The end-to-end flow for selling an eligible Punk to the protocol at the live bid.
+---
+
+# Accept the live bid
+
+The protocol maintains a single global ETH live bid, held by
+[Patron](/docs/contracts/patron), open to any eligible Punk. Accepting it is
+not one transaction: the owner lists the Punk exclusively to Patron on the
+2017 CryptoPunks market, a second transaction (from anyone) finalizes the
+acceptance, and the seller collects payment from the market in a third. This
+guide walks the whole flow with cast and viem.
+
+The cast of characters:
+
+- the **seller**: the Punk's owner, who lists it and later collects payment
+- the **finalizer**: whoever calls `Patron.acceptBid`. Usually the seller or a
+  frontend acting for them, but the call is permissionless and safe to leave
+  open because the target trait is protocol-derived and the seller is paid the
+  listed price no matter who calls
+- **Patron** at `{{addr:patron}}`, which pays the listed price out of the live
+  bid
+- the **2017 CryptoPunks market** at
+  [`0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB`](https://evm.now/address/0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB?chainId=1),
+  which holds the listing and the seller's payment
+
+## Step 0: check eligibility
+
+Three reads against
+[PermanentCollection](/docs/contracts/permanent-collection) at
+`{{addr:permanentCollection}}` and [Patron](/docs/contracts/patron) tell you
+whether a Punk can be accepted right now.
+
+**1. Custody.** `custodyOf(punkId)` must be `None` (0, never acquired) or
+`ReturnedToMarket` (2, previously acquired and returned through a cleared
+return auction). `InReturnAuction` (1) and `Vaulted` (3) reject with
+`PunkAlreadyAcquired`.
+
+**2. Canonical target.** `canonicalTargetOf(punkId)` returns the trait this
+acquisition will target: the rarest trait the Punk carries that is both
+uncollected and not already pending in another return auction (ties break to
+the lowest bit index). The protocol picks the target, not the caller. You pass
+the value into `acceptBid` as a verified expectation, and the call reverts
+`NotCanonicalTarget` if the canonical target shifted between your read and the
+transaction landing. If the Punk carries no uncollected, non-pending trait,
+`canonicalTargetOf` reverts `NoEligibleTarget`: the Punk is not currently
+eligible.
+
+**3. The bid.** `Patron.bidBalance()` returns the accounted live bid in wei.
+The listing price must be positive and at most this value.
+
+```bash
+RPC=https://ethereum-rpc.publicnode.com
+PC={{addr:permanentCollection}}
+PATRON={{addr:patron}}
+PUNK_ID=1234
+
+# 0 = never acquired, 2 = returned to market: both eligible
+cast call $PC "custodyOf(uint16)(uint8)" $PUNK_ID --rpc-url $RPC
+
+# The trait this acquisition will target (reverts NoEligibleTarget if none)
+cast call $PC "canonicalTargetOf(uint16)(uint8)" $PUNK_ID --rpc-url $RPC
+
+# The current live bid in wei
+cast call $PATRON "bidBalance()(uint256)" --rpc-url $RPC
+```
+
+### The sole-carrier rule for Punk #8348
+
+Exactly one trait in the sealed dataset has a single carrier: trait bit 23
+("7 Attributes"), carried only by Punk #8348. While that trait is uncollected,
+any acquisition of #8348 must target trait 23, or it reverts
+`SoleCarrierMustTargetTrait`. You don't need special handling:
+`canonicalTargetOf(8348)` already returns 23 whenever the rule applies, because
+a rarity-1 trait is always the rarest one the Punk carries. The dedicated view
+`soleCarrierConstraint(punkId)` returns `(required, requiredTraitId)` if you
+want to surface the constraint in a UI.
+
+## Step 1: the owner lists exclusively to Patron
+
+The seller calls the 2017 market's exclusive-listing function, with Patron as
+the only allowed buyer:
+
+```solidity
+market.offerPunkForSaleToAddress(punkId, listingWei, patron);
+```
+
+Constraints on `listingWei`:
+
+- it must be positive: a zero-price listing reverts `ZeroListingPrice` at
+  acceptance time
+- it must be at most the live bid: a listing above `bidBalance()` reverts
+  `ListingExceedsBid`
+- there is no lower bound other than zero. The protocol pays the listed price
+  and the pool keeps any difference, so listing at the full bid is the
+  rational default and what the official frontend does
+
+The exclusivity (`onlySellTo = patron`) is what makes the listing safe: no
+third party can buy the Punk out from under the seller, and the listing is the
+seller's explicit signal to sell to the protocol. A plain public
+`offerPunkForSale` listing does not work for this path
+(`PunkNotListedToHub`).
+
+## Step 2: anyone finalizes with acceptBid
+
+```solidity
+function acceptBid(uint16 punkId, uint8 targetTraitId, uint256 expectedListingWei) external
+```
+
+- `punkId`: the listed Punk (must be below 10,000, else `InvalidPunkId`)
+- `targetTraitId`: the value you read from `canonicalTargetOf(punkId)`
+- `expectedListingWei`: the caller's overpay cap. If the seller re-listed at a
+  higher price after your read, the call reverts `ListingAboveExpected`
+  instead of paying more than you expected. Pass the listing price you
+  observed (or the bid you read, if the seller listed at the full bid)
+
+On success Patron buys the Punk at the listed price via the market's
+`buyPunk`, transfers it to
+[ReturnAuctionModule](/docs/contracts/return-auction-module), starts its
+72-hour return auction, and records the acquisition. The `BidAccepted` event
+fires with `(punkId, seller, payout)`.
+
+Listing and acceptance are two separate transactions because the market
+listing must exist before `acceptBid` reads it. A wallet that supports batched
+calls (EIP-5792) can submit both in one bundle from the seller's account;
+otherwise the seller lists first and the finalizer follows.
+
+### What each revert means
+
+| Revert | Meaning |
+| --- | --- |
+| `InvalidPunkId(punkId)` | `punkId >= 10_000` |
+| `PunkNotListedToHub(punkId)` | no active listing, or the listing isn't exclusive to Patron |
+| `ZeroListingPrice(punkId)` | the exclusive listing has price 0 |
+| `ListingExceedsBid(listing, liveBid)` | listed price is above the current live bid; wait for the bid to grow or re-list lower |
+| `ListingAboveExpected(listing, expected)` | the seller raised the price past the caller's `expectedListingWei` cap; re-read and retry |
+| `InvalidTargetTrait(punkId, targetTraitId)` | target is >= 111 or not on the Punk's trait mask |
+| `TargetTraitAlreadyCollected(targetTraitId)` | target trait already has a vaulted carrier |
+| `TargetTraitPending(targetTraitId)` | another in-flight return auction already targets this trait; each uncollected trait admits one attempt at a time |
+| `SoleCarrierMustTargetTrait(punkId, requiredTraitId)` | Punk #8348 must target trait 23 while it is uncollected |
+| `NotCanonicalTarget(punkId, provided, canonical)` | the supplied target isn't the protocol-derived canonical target; re-read `canonicalTargetOf` and retry |
+| `PunkAlreadyAcquired(punkId)` | custody is `InReturnAuction` or `Vaulted` |
+| `PunkTransferFailed()` | the market buy didn't deliver the Punk to Patron (defensive check) |
+
+`PermanentCollection.recordAcquisition` re-validates the target and custody
+authoritatively at the end of the call (its equivalents are
+`TargetNotCanonical`, `TargetTraitAlreadyPending`, `AlreadyRecorded`); Patron's
+checks exist so an invalid call reverts before the buy, not after.
+
+## Step 3: the seller collects from the market
+
+`buyPunk` does not push ETH to the seller. The 2017 market credits the listed
+price to `pendingWithdrawals[seller]`, and the seller pulls it:
+
+```solidity
+market.withdraw();
+```
+
+The market pays the seller, not Patron. One caveat for contract accounts: the
+market's `withdraw()` uses a 2300-gas `transfer`, so a smart-contract seller
+(or an EIP-7702-delegated EOA) whose code runs on receive will revert under
+the stipend. An EOA can recover by removing the delegation before
+withdrawing.
+
+## What happens next
+
+The accepted Punk immediately enters a 72-hour return auction on
+[ReturnAuctionModule](/docs/contracts/return-auction-module). The opening
+reserve is `listingWei x (101 + previousAttempts) / 100`, rounded up, where
+`previousAttempts` counts prior return auctions against the same target trait.
+Two outcomes:
+
+- **someone bids at least the reserve**: the auction clears, the Punk goes to
+  the winning bidder, and the proceeds split across the live bid, the
+  buy-and-burn path, and the vault-burn pool. The seller keeps the sale
+  proceeds either way
+- **nobody bids**: the Punk is vaulted in
+  [PunkVault](/docs/contracts/punk-vault) permanently, the target trait
+  becomes a permanent trait, and, if this is the trait's first vaulting, the
+  seller (as the recorded `originalSeller`) receives that trait's Proof NFT
+
+See [Bid on a return auction](/docs/guides/bid-on-a-return-auction) for the
+auction from the bidder's side.
+
+## Full cast walkthrough
+
+```bash
+RPC=https://ethereum-rpc.publicnode.com
+MARKET=0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB
+PATRON={{addr:patron}}
+PC={{addr:permanentCollection}}
+PUNK_ID=1234
+
+# ── Eligibility reads ──
+cast call $PC "custodyOf(uint16)(uint8)" $PUNK_ID --rpc-url $RPC          # want 0 or 2
+TARGET=$(cast call $PC "canonicalTargetOf(uint16)(uint8)" $PUNK_ID --rpc-url $RPC)
+BID=$(cast call $PATRON "bidBalance()(uint256)" --rpc-url $RPC | awk '{print $1}')
+
+# ── 1. Seller lists exclusively to Patron at the full bid ──
+cast send $MARKET \
+  "offerPunkForSaleToAddress(uint256,uint256,address)" \
+  $PUNK_ID $BID $PATRON \
+  --private-key $SELLER_KEY --rpc-url $RPC
+
+# ── 2. Anyone finalizes. expectedListingWei = the listing price just set ──
+cast send $PATRON \
+  "acceptBid(uint16,uint8,uint256)" \
+  $PUNK_ID $TARGET $BID \
+  --private-key $ANY_KEY --rpc-url $RPC
+
+# ── 3. Seller collects the payment queued on the market ──
+cast call $MARKET "pendingWithdrawals(address)(uint256)" $SELLER_ADDRESS --rpc-url $RPC
+cast send $MARKET "withdraw()" --private-key $SELLER_KEY --rpc-url $RPC
+```
+
+## Full viem walkthrough
+
+```ts
+import {createPublicClient, createWalletClient, http, parseAbi} from 'viem';
+import {mainnet} from 'viem/chains';
+
+const MARKET = '0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB';
+const PATRON = '{{addr:patron}}';
+const COLLECTION = '{{addr:permanentCollection}}';
+
+const marketAbi = parseAbi([
+  'function offerPunkForSaleToAddress(uint256 punkIndex, uint256 minSalePriceInWei, address toAddress)',
+  'function punksOfferedForSale(uint256 punkIndex) view returns (bool isForSale, uint256 punkIndexOut, address seller, uint256 minValue, address onlySellTo)',
+  'function pendingWithdrawals(address owner) view returns (uint256)',
+  'function withdraw()',
+]);
+const patronAbi = parseAbi([
+  'function bidBalance() view returns (uint256)',
+  'function acceptBid(uint16 punkId, uint8 targetTraitId, uint256 expectedListingWei)',
+]);
+const collectionAbi = parseAbi([
+  'function custodyOf(uint16 punkId) view returns (uint8)',
+  'function canonicalTargetOf(uint16 punkId) view returns (uint8)',
+]);
+
+const client = createPublicClient({chain: mainnet, transport: http()});
+const seller = createWalletClient({chain: mainnet, transport: http(), account: sellerAccount});
+
+const punkId = 1234;
+
+// ── Eligibility ──
+const custody = await client.readContract({
+  address: COLLECTION, abi: collectionAbi, functionName: 'custodyOf', args: [punkId],
+});
+if (custody !== 0 && custody !== 2) throw new Error('Punk not eligible (in auction or vaulted)');
+
+// Reverts NoEligibleTarget when the Punk carries no eligible trait
+const target = await client.readContract({
+  address: COLLECTION, abi: collectionAbi, functionName: 'canonicalTargetOf', args: [punkId],
+});
+
+const bid = await client.readContract({
+  address: PATRON, abi: patronAbi, functionName: 'bidBalance',
+});
+
+// ── 1. Seller lists exclusively to Patron at the full bid ──
+await seller.writeContract({
+  address: MARKET, abi: marketAbi,
+  functionName: 'offerPunkForSaleToAddress',
+  args: [BigInt(punkId), bid, PATRON],
+});
+
+// ── 2. Anyone finalizes. Re-read the listing to set the overpay cap ──
+const [isForSale, , , listingWei, onlySellTo] = await client.readContract({
+  address: MARKET, abi: marketAbi, functionName: 'punksOfferedForSale', args: [BigInt(punkId)],
+});
+if (!isForSale || onlySellTo.toLowerCase() !== PATRON.toLowerCase()) {
+  throw new Error('Punk is not listed exclusively to Patron');
+}
+await seller.writeContract({
+  address: PATRON, abi: patronAbi,
+  functionName: 'acceptBid',
+  args: [punkId, target, listingWei],
+});
+
+// ── 3. Seller collects from the market ──
+const owed = await client.readContract({
+  address: MARKET, abi: marketAbi, functionName: 'pendingWithdrawals', args: [seller.account.address],
+});
+if (owed > 0n) {
+  await seller.writeContract({address: MARKET, abi: marketAbi, functionName: 'withdraw'});
+}
+```
+
+Contract reference: [Patron](/docs/contracts/patron),
+[PermanentCollection](/docs/contracts/permanent-collection),
+[ReturnAuctionModule](/docs/contracts/return-auction-module).

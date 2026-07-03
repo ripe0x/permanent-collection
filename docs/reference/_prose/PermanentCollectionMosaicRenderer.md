@@ -1,0 +1,208 @@
+---
+contract: PermanentCollectionMosaicRenderer
+slug: mosaic-renderer
+deploymentsKey: renderer
+title: PermanentCollectionMosaicRenderer
+---
+
+# summary
+
+The shipped renderer, installed behind `RendererRegistry`. It composes
+the artwork as a true mosaic of the actual collected CryptoPunks: an
+11×10 grid of 24×24 trait cells plus one pulled-out "final type" cell
+beneath the grid, on a square 356×356 canvas, entirely on-chain SVG.
+Every cell reads live protocol state (`collectedMask`, `pendingMask`,
+`firstVaultedPunk` from `PermanentCollection`) and renders one of three
+states: collected (the vaulted Punk's pixel tile on a `#8F918B` swatch),
+pending (the uncollected look with a 1-px dashed border, meaning a return
+auction is live for that trait), or uncollected (a flat dim cell with the
+trait's icon).
+
+It also serves every JSON metadata envelope in the protocol: the zero-arg
+`tokenURI()` for the $111 ERC20, `contractURI(address)` for both the
+ERC20 and the PunkVault collection page, and `tokenURI(uint256)` for the
+PunkVault ERC721 tokens, where ids 0..110 are delegated to the dedicated
+Proof renderer and id 111 renders the Vault Title here. The contract
+holds no state of its own, has no admin, and moves no value; it's
+replaceable via `RendererRegistry.setImplementation` until the registry
+locks.
+
+# concepts
+
+### The canvas
+
+The design coordinate space is 356×356 (`viewBox="0 0 356 356"`): a
+24-px outer pad around an 11×10 grid of 28-px cells (24-px tile + 4-px
+gap). The root SVG's intrinsic `width`/`height` are emitted at 8× (2848)
+so a right-click "Copy Image" rasterizes at print- and share-friendly
+resolution; display sizing is unaffected since containers constrain via
+CSS. The bottom 28-px slot holds a two-line pixel-font inscription on the
+left (the "N / 111" progress line in dim `#6a6a6a` above the
+"PERMANENT COLLECTION" headline in `#f5f5f5`) and the pulled-out cell on
+the right at (306, 306). The pulled-out trait is trait 4, the Zombie
+type; the other four types stay in the grid's last row.
+
+### Cell states
+
+| State | Rendering |
+|---|---|
+| Uncollected | flat `#1c1c1c` cell + the trait's icon |
+| Pending | the uncollected look + a 1-px dashed `#454545` border (a return auction is live for a Punk targeting this trait) |
+| Collected | `#8F918B` swatch + the first-vaulted Punk's pixel fragment |
+
+Trait icons come in three visual families, matching the trait taxonomy:
+types and head variants draw a canonical exemplar Punk, attribute-count
+traits draw an N-of-7 dot strip, and accessories draw the pixel diff
+between a canonical Punk and its bare head-variant baseline (isolating
+just the accessory). Six rare-type trait ids (the Alien, Ape and Zombie
+types and their matching head variants) rotate their exemplar Punk per
+block, so those icons cycle across renders by design.
+
+### The two caches
+
+Rendering is cache-first. Collected cells read the vaulted Punk's tile
+from `PunkSvgFragmentCache`; uncollected and pending cells read the trait
+icon from `TraitIconCache`. Both caches are public, immutable, and start
+empty; anyone can pay gas to bake entries. When an entry isn't baked the
+renderer falls through to on-the-fly computation from the sealed
+`PunksData` contract and never reverts, so caching is a gas optimization
+for `eth_call` consumers, not a precondition of metadata. The on-the-fly
+bytes are byte-identical to the baked ones, an invariant enforced by
+test. `cacheTrait` on this contract bakes a collected trait's Punk tile;
+`TraitIconCache.cacheTrait` bakes trait icons.
+
+### Reading the artwork
+
+```bash
+# The raw mosaic SVG, no JSON envelope
+cast call {{addr:renderer}} "svg()(string)" \
+  --rpc-url https://ethereum-rpc.publicnode.com
+
+# The Vault Title metadata (base64 JSON data URI)
+cast call {{addr:renderer}} "tokenURI(uint256)(string)" 111 \
+  --rpc-url https://ethereum-rpc.publicnode.com
+```
+
+Canonical consumers go through `RendererRegistry`
+({{addr:rendererRegistry}}), which forwards the same four views.
+
+## function cacheTrait
+
+access: permissionless
+
+Bakes the Punk tile for `traitId`'s first-vaulted Punk into the public
+`PunkSvgFragmentCache`, so future renders of that cell read one SSTORE2
+pointer instead of recomputing from raw pixels. Looks up
+`collection.firstVaultedPunk(traitId)` and reverts `TraitNotCollected` if
+the trait hasn't entered the vault yet; otherwise forwards to
+`punkSvgCache.cachePunk(punkId)` and returns the SSTORE2
+storage-contract address holding the fragment. Anyone can call this once
+a trait is collected; it's an off-chain catch-up activity that lowers
+view gas, with no effect on rendered output.
+
+## function cachedPunkForTrait
+
+Convenience wrapper around `collection.firstVaultedPunk(traitId)`.
+Returns the Punk responsible for the trait's entry into the collection
+and an `exists` flag, or `(0, false)` if the trait is uncollected.
+
+## function collection
+
+The immutable `PermanentCollection` records core. Read for
+`collectedMask`, `pendingMask`, `collectedCount`, `isComplete`, and
+per-trait `firstVaultedPunk` on every render.
+
+## function contractURI
+
+ERC-7572 contract-level metadata. Returns the collection envelope, a
+base64 JSON data URI with name "PERMANENT COLLECTION", the live mosaic
+image, and Traits Collected / Traits Total / Punks Vaulted attributes.
+Both the PunkVault collection page and the $111 ERC20 resolve through
+this view, so the `symbol` field is keyed off the `token` argument:
+"PERMANENTCOLLECTION" when `token` is the vault, "111" otherwise.
+
+## function isTraitCached
+
+True iff `traitId` is collected AND its first-vaulted Punk has a baked
+fragment in `PunkSvgFragmentCache`. Returns false for uncollected traits
+rather than reverting, so callers don't need an existence check first.
+The value to read before deciding whether `cacheTrait` is worth calling.
+
+## function proofRenderer
+
+The immutable `PermanentCollectionProofRenderer` address that
+`tokenURI(uint256)` delegates Proof ids 0..110 to. Pinned at
+construction; the on-chain way to discover the Proof renderer's address.
+
+## function punkSvgCache
+
+The immutable public `PunkSvgFragmentCache` holding baked full-Punk SVG
+fragments for collected cells.
+
+## function punksData
+
+The immutable sealed `PunksData` contract, the pixel, palette, and trait
+taxonomy source everything is drawn from. The same instance
+`PermanentCollection` pins by dataset hash.
+
+## function svg
+
+The raw mosaic SVG string for the current chain state, no JSON envelope.
+Reads `collectedMask`, `pendingMask`, and `collectedCount` and renders
+all 111 cells plus the footer. Useful for off-chain tooling; the metadata
+views embed this same image as a base64 data URI.
+
+## function tokenURI()
+
+Zero-arg ERC20-flavored metadata, consumed by the $111 token's metadata
+passthrough. Returns the same collection envelope as `contractURI` with
+symbol "111": name "PERMANENT COLLECTION", the live mosaic image, and the
+Traits Collected / Traits Total / Punks Vaulted attributes.
+
+## function tokenURI(uint256)
+
+ERC721 metadata dispatch for PunkVault-issued token ids:
+
+- `0 <= id <= 110`: delegated to `proofRenderer.tokenURI(id)`, the
+  corresponding Proof (`tokenId == traitId` directly). Reverts
+  `ProofNotMinted` there if that Proof hasn't been minted
+- `id == 111`: the Vault Title, rendered here. A base64 JSON envelope
+  with the live mosaic image and Punks Vaulted / Traits Collected /
+  Traits Total / Collection Complete attributes
+- `id >= 112`: reverts `UnknownTokenId`
+
+`PunkVault.tokenURI` gates on mint state before forwarding, so an
+unminted but in-range id only reaches this dispatch when called directly
+on the renderer or registry.
+
+## function traitIconBytes
+
+Inspection view exposing the exact per-cell trait-icon bytes the renderer
+composes internally, so tests and off-chain tools can verify that
+`TraitIconCache`'s baked bytes match what this renderer would produce on
+the fly. Takes `traitId` in 0..110 and reverts (with a require string)
+otherwise. Fetches palette and head-variant baselines fresh on each call
+so a single trait can be checked without rendering the whole mosaic. For
+the six rotating rare-type traits the result depends on `block.number`.
+
+## function traitIconCache
+
+The immutable public `TraitIconCache` holding baked trait-icon fragments
+for uncollected and pending cells. Empty at deploy; permissionlessly
+bakeable.
+
+## function vault
+
+The immutable `PunkVault` reference, read for `lockedPunkCount` when
+building the Punks Vaulted attribute in the metadata envelopes.
+
+## error TraitNotCollected
+
+`cacheTrait` was called for a trait with no first-vaulted Punk yet.
+There's nothing to bake; wait until a Punk carrying the trait is vaulted.
+
+## error UnknownTokenId
+
+`tokenURI(uint256)` was called with an id of 112 or higher. Only ids
+0..110 (Proofs) and 111 (the Vault Title) exist; the revert is loud so a
+stale marketplace poll can't silently receive wrong data.

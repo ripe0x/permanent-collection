@@ -168,6 +168,7 @@ All suites run against a mainnet fork on a public RPC (no archive node required)
 ## Docs
 
 - **[docs/SYSTEM.md](docs/SYSTEM.md)**: canonical system overview (start here)
+- **[docs/reference/](docs/reference/)**: API-style protocol reference — every contract, function, event, and error, with access control and worked examples (served on the site at `/docs`)
 - [docs/PROTOCOL.md](docs/PROTOCOL.md): protocol mechanism + state machine
 - [docs/SECURITY.md](docs/SECURITY.md): trust model + reentrancy posture
 - [docs/COMPOSABILITY.md](docs/COMPOSABILITY.md): building on top (Design A + B)

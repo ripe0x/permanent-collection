@@ -293,8 +293,8 @@ export default async function AboutPage() {
                             <Link href="/collection" className="secondary">
                                 View the collection
                             </Link>
-                            <Link href="/builders" className="secondary">
-                                Builder docs
+                            <Link href="/docs" className="secondary">
+                                Protocol docs
                             </Link>
                         </div>
                     </div>

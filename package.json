@@ -10,6 +10,7 @@
   "scripts": {
     "snapshot:punksdata": "tsx scripts/snapshot-punksdata.ts",
     "generate:abis": "tsx scripts/generate-abis.ts",
+        "generate:docs": "tsx scripts/generate-docs.ts",
     "build:contracts": "pnpm --filter contracts build",
     "test:contracts": "pnpm --filter contracts test",
     "fork:start": "./scripts/start-dev-fork.sh",
@@ -36,9 +37,11 @@
     "keeper:dry": "KEEPER_DRY_RUN=1 tsx scripts/keeper.ts --once"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
+    "marked": "^18.0.5",
+    "shiki": "^4.3.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "viem": "^2.21.50",
-    "dotenv": "^16.4.5"
+    "viem": "^2.21.50"
   }
 }

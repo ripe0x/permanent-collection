@@ -1005,6 +1005,7 @@ scripts/
 
 | Task | Doc |
 |---|---|
+| Per-contract API reference (functions, events, errors, access control; generated, served at `/docs` on the site) | [docs/reference/](reference/) |
 | Run it all locally | [docs/RUN_LOCAL.md](RUN_LOCAL.md) |
 | Mission / liveness property set | [docs/MISSION_PROPERTIES.md](MISSION_PROPERTIES.md) |
 | Design B dispatcher spec | [docs/DISPATCHER_DESIGN.md](DISPATCHER_DESIGN.md) |
