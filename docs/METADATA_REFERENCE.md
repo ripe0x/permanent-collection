@@ -31,7 +31,7 @@ ERC20 111 (ArtCoinsToken)
                                   └─► Mosaic.contractURI(token != vault)
                                         └─► _tokenURIZeroArg()   ← ERC20 JSON (§2)
 
-PunkVault (ERC721, "PCVAULT")
+PunkVault (ERC721, "PERMANENTCOLLECTION")
   ├─ contractURI()   ──► RendererRegistry.contractURI(vault)
   │                        └─► Mosaic.contractURI(token == vault)
   │                              └─► _tokenURITitle()           ← collection JSON
@@ -51,11 +51,16 @@ Two pairs come out byte-identical by design:
   `_tokenURITitle()`).
 
 The registry is swappable by the admin until `freeze()` or the 1-year
-admin lock, after which the renderer is permanent. Its `setImplementation`
-interface probe staticcalls `tokenURI()`, `contractURI(address)`, and
-`tokenURI(111)` (the Title) — **not** a Proof id, because an unminted Proof
-reverts `ProofNotMinted` (no preview envelope) and no Proof is guaranteed
-minted at swap time.
+admin lock, after which the renderer is permanent. `setImplementation`
+performs **no on-chain interface probe**: it guards only the zero address
+(`ZeroAddress`) and an EOA / destroyed contract (`NotAContract`). A
+candidate that has code but renders garbage is not caught on-chain by
+design; the registry moves no value, so a bad install only reverts the
+forwarded views and is recoverable by another `setImplementation` until
+`freeze()`. The real bound is the launch runbook's visual verification of
+the live `tokenURI(111)` / `contractURI` output before freezing (checked
+against the Title, not a Proof id, because an unminted Proof reverts
+`ProofNotMinted` with no preview envelope).
 
 ---
 
@@ -122,7 +127,7 @@ is never served.
 
 ---
 
-## 3. NFTs — PunkVault collection (`PCVAULT`)
+## 3. NFTs — PunkVault collection (`PERMANENTCOLLECTION`)
 
 `PunkVault` issues 112 ERC721 tokens: the **Title** (id 111) and **111
 Proofs** (ids 0..110, where `tokenId == traitId`).
@@ -132,7 +137,7 @@ Proofs** (ids 0..110, where `tokenId == traitId`).
 | Field | Value |
 |---|---|
 | `name()` | `Title to PERMANENT COLLECTION Vault` |
-| `symbol()` | `PCVAULT` |
+| `symbol()` | `PERMANENTCOLLECTION` |
 | `totalSupply()` | `(titleMinted ? 1 : 0) + proofsMintedCount` |
 | ERC-165 | adds EIP-4906 (`0x49064906`) over solmate's set |
 
@@ -188,9 +193,11 @@ come from `PunkVault.proofMeta(id)`.
 
 #### Minted Proof
 
-**Name:** (uses the collection `sequence`, e.g. "Proof 47")
+**Name:** (the Proof number IS the trait id `== tokenId`, not the
+collection sequence, so "Proof 102 (Tiara)" matches the token id; the
+sequence appears only in the `Sequence` attribute)
 ```
-Permanent Collection Proof <sequence> (<traitName>)
+Permanent Collection Proof <traitId> (<traitName>)
 ```
 
 **Description:**
@@ -205,14 +212,17 @@ Permanent Collection Proof <sequence> (<traitName>)
 | `Punk ID` | `<punkId>` | number | `proofMeta.punkId` (the Punk whose vaulting brought the trait in) |
 | `Sequence` | `<sequence> of 111` | string | `proofMeta.sequence` (1-based collection order) |
 | `Vaulted at Block` | `<mintedAtBlock>` | number | `proofMeta.mintedAtBlock` |
-| `Status` | `Minted` | string | constant for this branch |
+
+There is no `Status` attribute; the minted / unminted distinction lives in
+the image (the faint acquired-Punk layer, §5) and in the fact that only a
+minted Proof serves a `tokenURI` at all.
 
 **Image:** the per-Proof SVG with the faint acquired-Punk layer (see §5).
 
 **Envelope:** `data:application/json;base64,<base64(json)>`. Decoded JSON:
 
 ```json
-{"name":"Permanent Collection Proof <sequence> (<traitName>)","description":"Proof that CryptoPunk <punkId> was added to Permanent Collection's immutable contract for the <traitName> trait.","image":"data:image/svg+xml;base64,<PROOF SVG>","attributes":[{"trait_type":"Trait","value":"<traitName>"},{"trait_type":"Trait ID","value":<traitId>},{"trait_type":"Punk ID","value":<punkId>},{"trait_type":"Sequence","value":"<sequence> of 111"},{"trait_type":"Vaulted at Block","value":<mintedAtBlock>},{"trait_type":"Status","value":"Minted"}]}
+{"name":"Permanent Collection Proof <traitId> (<traitName>)","description":"Proof that CryptoPunk <punkId> was added to Permanent Collection's immutable contract for the <traitName> trait.","image":"data:image/svg+xml;base64,<PROOF SVG>","attributes":[{"trait_type":"Trait","value":"<traitName>"},{"trait_type":"Trait ID","value":<traitId>},{"trait_type":"Punk ID","value":<punkId>},{"trait_type":"Sequence","value":"<sequence> of 111"},{"trait_type":"Vaulted at Block","value":<mintedAtBlock>}]}
 ```
 
 #### Unminted Proof — reverts (no metadata)
@@ -306,7 +316,7 @@ So marketplaces re-pull these strings without waiting on poll cadence:
 |---|---|
 | `ArtCoinsToken` (111, artcoins submodule) | ERC20; `tokenURI()`/`contractURI()` delegate to the wired renderer |
 | `PunkVault` | ERC721 issuer; `contractURI()` + `tokenURI(id)` delegate to the registry |
-| `RendererRegistry` | stable front; swappable until freeze/admin-lock; probes the impl interface |
+| `RendererRegistry` | stable front; swappable until freeze/admin-lock; no interface probe (zero-address + code-length checks only) |
 | `PermanentCollectionMosaicRenderer` | serves ERC20 JSON, Title JSON, the mosaic SVG; dispatches Proof ids |
 | `PermanentCollectionProofRenderer` | serves the 111 Proof JSON envelopes + Proof SVGs |
 | `PunksData` (`0x9cF9C8eA…117C`, sealed) | trait names + pixels + palette the images are built from |
