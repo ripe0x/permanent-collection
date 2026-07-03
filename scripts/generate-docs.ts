@@ -33,6 +33,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const ABI_DIR = join(ROOT, 'app', 'lib', 'abis');
 const PROSE_DIR = join(ROOT, 'docs', 'reference', '_prose');
+const ASSETS_DIR = join(ROOT, 'docs', 'reference', '_assets');
 const PAGES_DIR = join(ROOT, 'docs', 'reference', '_pages');
 const OUT_DIR = join(ROOT, 'docs', 'reference');
 const APP_DOCS_DIR = join(ROOT, 'app', 'lib', 'docs');
@@ -658,6 +659,24 @@ function renderPageHtml(hl: Highlighter, page: BuiltPage): RenderedPage {
                 const id = anchor(text);
                 if (depth === 2 || depth === 3) toc.push({depth, text, id});
                 return `<h${depth} id="${id}"><a class="doc-anchor" href="#${id}">${inline}</a></h${depth}>\n`;
+            },
+            image({href, text}) {
+                // Diagrams live in docs/reference/_assets and are referenced
+                // relatively (../_assets/x.svg) so GitHub renders the generated
+                // markdown as an <img>. On the site we inline the SVG instead:
+                // no extra request, and the display width derives from the
+                // viewBox so portrait diagrams don't stretch to the article
+                // width. The files are self-contained (explicit colors/fonts).
+                const m = href.match(/^\.\.\/_assets\/([\w-]+\.svg)$/);
+                if (!m) return `<img src="${href}" alt="${escapeHtml(text)}" />`;
+                const assetPath = join(ASSETS_DIR, m[1]);
+                if (!existsSync(assetPath)) throw new Error(`missing diagram asset: ${assetPath}`);
+                let svg = readFileSync(assetPath, 'utf8').replace(/<\?xml[^>]*\?>\s*/, '');
+                const vb = svg.match(/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/);
+                if (!vb) throw new Error(`${assetPath}: svg needs a "0 0 w h" viewBox`);
+                const maxW = Math.round(parseFloat(vb[1]) * 1.1);
+                svg = svg.replace('<svg ', `<svg aria-label="${escapeHtml(text)}" `);
+                return `<figure class="doc-figure" style="max-width:${maxW}px">${svg}</figure>\n`;
             },
             code({text, lang}) {
                 const language = lang && loadedLangs.has(lang) ? lang : null;

@@ -400,6 +400,18 @@
     word-break: break-word;
 }
 
+/* ─── Diagrams (inlined SVG figures) ─────────────────────────────────── */
+
+.doc-figure {
+    margin: 28px auto 32px;
+}
+
+.doc-figure svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
 /* ─── Code blocks (shiki output wrapped in .doc-code) ────────────────── */
 
 .doc-code {

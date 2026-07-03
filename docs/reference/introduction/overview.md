@@ -18,6 +18,10 @@ so they can't drift from what's on chain.
 CryptoPunks have 111 distinct traits across 4 dimensions. The protocol's goal
 is a collection that covers every trait.
 
+![The protocol loop: swaps in the official pool skim 6% of volume; 5% funds the live bid held by Patron; an owner of an eligible Punk accepts; the Punk enters a 72-hour return auction with two exits. Cleared: the Punk goes to the high bidder, 65% of cost refills the live bid, 25% buys and burns $111, and the Punk is back in circulation. Vaulted: the Punk enters PunkVault forever, the target trait becomes permanent, and a Proof mints to the original seller.](../_assets/the-loop.svg)
+
+In detail:
+
 1. **The live bid.** [Patron](/docs/contracts/patron) holds a single global
    ETH bid, funded continuously by a 6% skim on $111 swap volume in the
    official pool. Any owner of an eligible Punk (one carrying an uncollected,
@@ -39,6 +43,8 @@ The recorded target trait is protocol-derived, not caller-chosen: always the
 rarest uncollected, not-pending trait the Punk carries.
 
 ## Fee flow per 1 ETH of swap volume
+
+![Fee split, true to scale: of 1 ETH of swap volume, 6.5% is fees. Expanded, that is 5.00% to the live bid, 0.50% LP fee, and a 1.00% protocol leg from which up to 0.25% is carved for the swap's referrer.](../_assets/fee-split.svg)
 
 The official pool's hook skims 6% of swap volume at swap time and routes it in
 the same transaction:

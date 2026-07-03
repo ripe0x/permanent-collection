@@ -1,0 +1,73 @@
+<svg viewBox="0 0 480 1010" xmlns="http://www.w3.org/2000/svg" role="img" preserveAspectRatio="xMidYMid meet" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <!-- Self-contained: explicit colors + system mono stack + white background,
+       so the same file reads correctly inlined on the site and as an <img>
+       on GitHub (including dark mode). Palette mirrors the site tokens:
+       ink #111111, muted #6B6B6B, line #DADADA, panel #F4F4F4. -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111111"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="480" height="1010" fill="#FFFFFF"/>
+
+  <!-- ── The official pool ─────────────────────────────────────────── -->
+  <rect x="50" y="16" width="380" height="96" fill="#FFFFFF" stroke="#111111" stroke-width="1.2"/>
+  <text x="240" y="48" text-anchor="middle" font-size="17" font-weight="600" letter-spacing="2" fill="#111111">THE OFFICIAL POOL</text>
+  <text x="240" y="72" text-anchor="middle" font-size="13" fill="#6B6B6B">$111 / ETH, Uniswap V4</text>
+  <text x="240" y="92" text-anchor="middle" font-size="13" fill="#6B6B6B">every swap skims 6% of volume</text>
+
+  <line x1="240" y1="112" x2="240" y2="192" stroke="#111111" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <text x="254" y="146" font-size="13" fill="#111111">5% of volume</text>
+  <text x="254" y="164" font-size="12.5" fill="#6B6B6B">the bid leg, every swap</text>
+
+  <!-- ── The live bid ──────────────────────────────────────────────── -->
+  <rect x="50" y="196" width="380" height="96" fill="#F4F4F4" stroke="#111111" stroke-width="1.2"/>
+  <text x="240" y="228" text-anchor="middle" font-size="17" font-weight="600" letter-spacing="2" fill="#111111">THE LIVE BID</text>
+  <text x="240" y="252" text-anchor="middle" font-size="13" fill="#6B6B6B">one global ETH bid, held by Patron</text>
+  <text x="240" y="272" text-anchor="middle" font-size="13" fill="#6B6B6B">open to any eligible Punk</text>
+
+  <line x1="240" y1="292" x2="240" y2="372" stroke="#111111" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <text x="254" y="326" font-size="13" fill="#111111">an owner accepts</text>
+  <text x="254" y="344" font-size="12.5" fill="#6B6B6B">at a listed price ≤ the bid</text>
+
+  <!-- ── The return auction ────────────────────────────────────────── -->
+  <rect x="50" y="376" width="380" height="96" fill="#FFFFFF" stroke="#111111" stroke-width="1.2"/>
+  <text x="240" y="408" text-anchor="middle" font-size="17" font-weight="600" letter-spacing="2" fill="#111111">72-HOUR RETURN AUCTION</text>
+  <text x="240" y="432" text-anchor="middle" font-size="13" fill="#6B6B6B">anyone can bid to return the Punk</text>
+  <text x="240" y="452" text-anchor="middle" font-size="13" fill="#6B6B6B">reserve = cost x (101 + attempts) / 100</text>
+
+  <!-- exit 1: cleared -->
+  <line x1="240" y1="472" x2="240" y2="552" stroke="#111111" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <text x="254" y="506" font-size="13" fill="#111111">a bid clears the reserve</text>
+  <text x="254" y="524" font-size="12.5" fill="#6B6B6B">exit 1 of 2</text>
+
+  <!-- ── Cleared ───────────────────────────────────────────────────── -->
+  <rect x="50" y="556" width="380" height="132" fill="#FFFFFF" stroke="#111111" stroke-width="1.2"/>
+  <text x="240" y="588" text-anchor="middle" font-size="17" font-weight="600" letter-spacing="2" fill="#111111">CLEARED</text>
+  <text x="240" y="612" text-anchor="middle" font-size="13" fill="#6B6B6B">the Punk goes to the high bidder</text>
+  <text x="240" y="632" text-anchor="middle" font-size="13" fill="#111111">65% of cost refills the live bid</text>
+  <text x="240" y="652" text-anchor="middle" font-size="13" fill="#6B6B6B">25% buys and burns $111</text>
+  <text x="240" y="672" text-anchor="middle" font-size="13" fill="#6B6B6B">10% + premium accrue for later burns</text>
+
+  <!-- loop back: cleared → live bid -->
+  <polyline points="50,622 18,622 18,244 44,244" fill="none" stroke="#111111" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <text x="8" y="440" font-size="12.5" fill="#6B6B6B" transform="rotate(-90 8 440)" text-anchor="middle">bid refilled · Punk back in circulation</text>
+
+  <!-- exit 2: vaulted (right-margin route past CLEARED) -->
+  <polyline points="430,424 462,424 462,836 436,836" fill="none" stroke="#111111" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <text x="468" y="640" font-size="12.5" fill="#6B6B6B" transform="rotate(90 468 640)" text-anchor="middle">nobody bids within 72 hours · exit 2 of 2</text>
+
+  <!-- ── Vaulted ───────────────────────────────────────────────────── -->
+  <rect x="50" y="772" width="380" height="132" fill="#111111" stroke="#111111" stroke-width="1.2"/>
+  <text x="240" y="806" text-anchor="middle" font-size="17" font-weight="600" letter-spacing="2" fill="#FFFFFF">VAULTED</text>
+  <text x="240" y="830" text-anchor="middle" font-size="13" fill="#DADADA">the Punk enters PunkVault, forever</text>
+  <text x="240" y="850" text-anchor="middle" font-size="13" fill="#DADADA">the target trait becomes permanent</text>
+  <text x="240" y="870" text-anchor="middle" font-size="13" fill="#DADADA">a Proof mints to the original seller</text>
+  <text x="240" y="890" text-anchor="middle" font-size="13" fill="#DADADA">tokenId == traitId</text>
+
+  <!-- terminal note -->
+  <line x1="240" y1="904" x2="240" y2="936" stroke="#6B6B6B" stroke-width="1" stroke-dasharray="3 4"/>
+  <text x="240" y="960" text-anchor="middle" font-size="12.5" fill="#6B6B6B">terminal: no exit path exists in the bytecode</text>
+  <text x="240" y="982" text-anchor="middle" font-size="12.5" fill="#111111">all 111 traits vaulted = the collection is complete</text>
+</svg>
