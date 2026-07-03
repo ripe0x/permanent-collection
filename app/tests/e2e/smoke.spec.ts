@@ -104,11 +104,16 @@ e2eTest.describe('Phase 1 smoke', () => {
 
         // No console errors during the whole flow.
         // Allow known-noisy network-fetch logs (the /api/eligibility 404
-        // hits before a Punk is picked) but flag anything else.
+        // hits before a Punk is picked) but flag anything else. The
+        // "[indexer] query failed" server log is expected here: fork-mode
+        // e2e runs no indexer by design, the home dashboard degrades to
+        // safe defaults and logs the failure server-side, and Next dev
+        // forwards server console.error to the browser console.
         const failingErrors = consoleErrors.filter(
             (msg) =>
                 !msg.includes('/api/eligibility') &&
-                !msg.includes('Failed to load resource'),
+                !msg.includes('Failed to load resource') &&
+                !msg.includes('[indexer] query failed'),
         );
         expect(failingErrors).toEqual([]);
     });

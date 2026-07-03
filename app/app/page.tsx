@@ -7,7 +7,7 @@ import {buildListedTraitOptions} from '@/lib/trait-options';
 import {Footer} from '@/components/Footer';
 import {Header} from '@/components/Header';
 import {Hero, LiveBidSection} from '@/components/Hero';
-import {LoopStory} from '@/components/LoopStory';
+import {LoopSection} from '@/components/LoopSection';
 import {TitleAuctionBanner} from '@/components/TitleAuctionBanner';
 import {TokenSection} from '@/components/TokenSection';
 import {VaultSection} from '@/components/VaultSection';
@@ -115,8 +115,15 @@ export default async function Home() {
     // returns honest zeros (0 live bid, nothing collected, no auctions) and
     // the artwork renders from PunksData — no fabricated data, no swap.
     const data = await fetchHomeData();
+    // Section order is state-first: the live surfaces (bid, Title banner,
+    // auctions, listings) come straight after the hero, and the loop
+    // explainer sits behind them — orientation for first visits, not a toll
+    // on every visit.
     return (
         <>
+            <a className="skip-link" href="#top">
+                Skip to content
+            </a>
             <Header />
             <main id="top">
                 {data.indexerDegraded && <IndexerDegradedNotice />}
@@ -124,11 +131,6 @@ export default async function Home() {
                     state={data.state}
                     market={data.market}
                     svgMarkup={data.svgMarkup}
-                />
-                <LoopStory
-                    variant="wheel"
-                    initialLiveBidWei={data.state.liveBidWei.toString()}
-                    collectedCount={data.state.collectedCount}
                 />
                 <LiveBidSection
                     state={data.state}
@@ -152,6 +154,7 @@ export default async function Home() {
                     traitNames={data.traitNames}
                     punkThumbs={buildPunkThumbs(data.psListings.map((l) => l.punkId))}
                 />
+                <LoopSection initialLiveBidWei={data.state.liveBidWei.toString()} />
                 <TokenSection />
                 <CollectionPreview state={data.state} />
                 <VaultSection />

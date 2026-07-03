@@ -43,12 +43,16 @@ export async function Footer() {
                         <Link href="/collection">Collection</Link>
                         <Link href="/proofs">Proofs</Link>
                         <Link href="/auction">Auctions</Link>
+                        <Link href="/bid">Accept the bid</Link>
                         <Link href="/trade">Trade {TOKEN_SYMBOL}</Link>
                         <Link href="/token">{TOKEN_SYMBOL} token</Link>
+                        <Link href="/about">About</Link>
                         <Link href="/faq">FAQ</Link>
                         <Link href="/protocol">Protocol</Link>
                         <Link href="/docs">Docs</Link>
                         <Link href="/docs/introduction/addresses">Contracts</Link>
+                        <Link href="/builders">Builders</Link>
+                        <Link href="/stats">Stats</Link>
                         <DexscreenerLink token={token} />
                         <a href="https://artcoins.art" target="_blank" rel="noreferrer">
                             artcoins

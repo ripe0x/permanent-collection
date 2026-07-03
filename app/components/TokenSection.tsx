@@ -8,19 +8,19 @@
 import Link from 'next/link';
 import {SwapBox} from './SwapBox';
 import {FeeBreakdown} from './FeeBreakdown';
-import {getTokenSymbol} from '@/lib/config';
+import {getTokenTicker} from '@/lib/config';
 import {FEES, fmtPct} from '@/lib/protocol-params';
 import {getCurrentFeePhase} from '@/lib/server/fee-phase';
 
-const TOKEN_SYMBOL = getTokenSymbol();
+const TOKEN_TICKER = getTokenTicker();
 
 export async function TokenSection() {
     const phase = await getCurrentFeePhase();
     return (
-        <section className="token-section" id="trade" aria-label={`${TOKEN_SYMBOL} token`}>
+        <section className="token-section" id="trade" aria-label={`${TOKEN_TICKER} token`}>
             <div className="wrap token-grid">
                 <div className="token-header">
-                    <div className="kicker">{TOKEN_SYMBOL}</div>
+                    <div className="kicker">{TOKEN_TICKER}</div>
                     <h2 className="section-title">The artcoin for Permanent Collection.</h2>
                 </div>
                 <div className="swap-side">
@@ -28,17 +28,21 @@ export async function TokenSection() {
                 </div>
                 <div className="token-body">
                     <p className="token-copy">
-                        Official {TOKEN_SYMBOL} trading feeds the live bid, funds {TOKEN_SYMBOL}
-                        burns, and backs the artcoins protocol leg that supports PC&apos;s treasury +
-                        the artcoins LAYER burn. Up to {fmtPct(FEES.referralCapPct)} of volume
-                        can route to a referrer if a swap carries attribution.
+                        Official {TOKEN_TICKER} trading feeds the live bid and backs the protocol
+                        leg that supports the Permanent Collection treasury and the artcoins LAYER
+                        burn. Up to {fmtPct(FEES.referralCapPct)} of volume can route to a referrer
+                        if a swap carries attribution.
+                    </p>
+                    <p className="token-copy">
+                        Return auction settlements fund {TOKEN_TICKER} buy-and-burns, and the
+                        transfer tax on side-venue buys is burned when a Punk is vaulted.
                     </p>
                     <p className="token-copy">
                         The tokenURI renders the live state of the collection. As the protocol runs, the artwork
                         updates.
                     </p>
                     <p className="token-copy">
-                        {TOKEN_SYMBOL} is the ownable token for the work. It does not redeem for
+                        {TOKEN_TICKER} is the ownable token for the work. It does not redeem for
                         vaulted Punks and does not control the vault.
                     </p>
                     <div className="fee-box">

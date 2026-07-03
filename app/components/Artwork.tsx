@@ -1,11 +1,19 @@
 /* The hero artwork. Renders the on-chain tokenURI SVG when available; falls
-   back to the v3 placeholder when the renderer read fails or is null. */
+   back to the v3 placeholder when the renderer read fails or is null. With
+   `caption`, a visible label under the image names the mosaic as the work
+   itself — without it, sighted visitors can read the grid as decorative UI. */
+import Link from 'next/link';
 import {getTokenTicker} from '@/lib/config';
+import {COLLECTION} from '@/lib/protocol-params';
 
-export function Artwork({svgMarkup}: {svgMarkup?: string | null}) {
+export function Artwork({svgMarkup, caption = false}: {svgMarkup?: string | null; caption?: boolean}) {
     return (
         <div className="artwork-wrap">
-            <div className="artwork" role="img" aria-label="Permanent Collection live state — 111-trait grid">
+            <div
+                className="artwork"
+                role="img"
+                aria-label={`Permanent Collection live state: the ${COLLECTION.totalTraits}-trait grid`}
+            >
                 {svgMarkup ? (
                     <div
                         className="artwork-svg"
@@ -19,6 +27,15 @@ export function Artwork({svgMarkup}: {svgMarkup?: string | null}) {
                     </>
                 )}
             </div>
+            {caption && (
+                <div className="artwork-caption">
+                    The work itself: all {COLLECTION.totalTraits} traits, rendered from chain state
+                    on every read. Cells are permanent, in return auction, or uncollected.{' '}
+                    <Link href="/collection" className="artwork-caption-link">
+                        Open the collection &rarr;
+                    </Link>
+                </div>
+            )}
             <style>{styles}</style>
         </div>
     );
@@ -71,5 +88,21 @@ const styles = `
     width: 100%;
     height: 100%;
     display: block;
+}
+.artwork-caption {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    max-width: 52ch;
+}
+.artwork-caption-link {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.artwork-caption-link:hover {
+    color: var(--muted);
 }
 `;

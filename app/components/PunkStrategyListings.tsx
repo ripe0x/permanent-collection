@@ -20,6 +20,7 @@ import {decodeErrorResult} from 'viem';
 import {abi as PatronAbi} from '@/lib/abis/Patron';
 import {classifyCarrierTier} from '@/lib/carrierTier';
 import {getContractAddresses, getChainId} from '@/lib/config';
+import {AUCTION} from '@/lib/protocol-params';
 import type {ListedTraitListing, ListedTraitOption} from '@/lib/data/types';
 import {
     formatEth,
@@ -50,11 +51,13 @@ export function PunkStrategyListings({
             <div className="wrap">
                 <div className="ps-listings-inner">
                     <div className="ps-listings-header">
-                        <h2 className="ps-listings-title">traits from public listings</h2>
+                        <div className="kicker">From public listings</div>
+                        <h2 className="ps-listings-title">Traits ready to accept.</h2>
                         <p className="ps-listings-sub">
-                            Public Punks listed by allowlisted sellers at or below the live bid, grouped by the trait the
-                            protocol would make permanent — the rarest uncollected trait each carries. Accept one to send
-                            it into a 72-hour return auction and earn the finder fee.
+                            Public Punks listed by allowlisted sellers at or below the live bid,
+                            grouped by the trait the protocol would make permanent: the rarest
+                            uncollected trait each carries. Accept one to send it into a{' '}
+                            {AUCTION.durationHours}-hour return auction and earn the finder fee.
                         </p>
                     </div>
                     <ul className="ps-trait-list">
@@ -333,13 +336,16 @@ const styles = `
 .ps-listings-header {
     margin-bottom: 14px;
 }
+/* A real heading — this section fires a real-money action (acceptListing),
+   so it gets the same treatment as its sibling sections, scaled to the
+   narrower 720px column. */
 .ps-listings-title {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 0 0 8px;
+    font-family: var(--serif);
+    font-size: clamp(24px, 3.4vw, 38px);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    font-weight: 300;
+    margin: 0 0 12px;
 }
 .ps-listings-sub {
     font-family: var(--sans);

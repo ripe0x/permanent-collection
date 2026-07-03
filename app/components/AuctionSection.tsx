@@ -6,7 +6,8 @@
 */
 import Link from 'next/link';
 import {PunkSvg} from '@/components/PunkSvg';
-import {getTokenSymbol} from '@/lib/config';
+import {getTokenTicker} from '@/lib/config';
+import {AUCTION, COLLECTION} from '@/lib/protocol-params';
 import type {
     AcceptedBidEvent,
     ActiveAuction,
@@ -21,7 +22,7 @@ import {
     formatTraitName,
 } from '@/lib/format';
 
-const TOKEN_SYMBOL = getTokenSymbol();
+const TOKEN_TICKER = getTokenTicker();
 
 export function AuctionSection({
     state,
@@ -60,7 +61,7 @@ export function AuctionSection({
         heading = 'No active return auction.';
         title = 'The live bid is standing.';
         copy =
-            `Any eligible Punk owner can accept it. Official ${TOKEN_SYMBOL} trading keeps adding to the bid.`;
+            `Any eligible Punk owner can accept it. Official ${TOKEN_TICKER} trading keeps adding to the bid.`;
     } else if (count === 1) {
         const a = auctions[0];
         heading = `${formatPunk(a.punkId)} is in return auction.`;
@@ -70,7 +71,7 @@ export function AuctionSection({
         heading = `${count} active return auctions.`;
         title = 'The market has open auctions.';
         copy =
-            'Each accepted Punk has its own 72-hour return auction. Returned Punks go back to circulation. Vaulted Punks make their chosen traits permanent.';
+            `Each accepted Punk has its own ${AUCTION.durationHours}-hour return auction. Returned Punks go back to circulation. Vaulted Punks make their recorded target traits permanent.`;
     }
 
     return (
@@ -101,14 +102,14 @@ export function AuctionSection({
                             <div className="outcomes">
                                 <div className="outcome">
                                     <div className="outcome-label">Returned</div>
-                                    <p>The Punk returns to circulation. {TOKEN_SYMBOL} burns.</p>
+                                    <p>The Punk returns to circulation. {TOKEN_TICKER} burns.</p>
                                 </div>
                                 <div className="outcome">
                                     <div className="outcome-label">Not returned</div>
                                     <p>
                                         The Punk enters the vault.{' '}
                                         {formatTraitName(auctions[0].targetTraitId, traitNames)} becomes a
-                                        permanent trait. {TOKEN_SYMBOL} burns.
+                                        permanent trait. {TOKEN_TICKER} burns.
                                     </p>
                                 </div>
                             </div>
@@ -137,7 +138,7 @@ export function AuctionSection({
                                         </Link>
                                     ))}
                                 </div>
-                                <Link className="view-all" href="/#auctions">
+                                <Link className="view-all" href="/auction">
                                     View all auctions
                                 </Link>
                             </>
@@ -212,10 +213,10 @@ function metricsFor(
     if (auctions.length === 0) {
         const last = recentAccepted?.[0];
         return [
-            ['Permanent traits', `${state.collectedCount} / 111`],
+            ['Permanent traits', `${state.collectedCount} / ${COLLECTION.totalTraits}`],
             ['Acquisitions', state.acquisitionCount.toString()],
             ['Last accepted bid', last ? formatEth(last.amountWei) : '—'],
-            [`${TOKEN_SYMBOL} burned`, `${formatEthBare(state.totalTokenBurnedWei)} ${TOKEN_SYMBOL}`],
+            [`${TOKEN_TICKER} burned`, `${formatEthBare(state.totalTokenBurnedWei)} ${TOKEN_TICKER}`],
         ];
     }
     if (auctions.length === 1) {
@@ -229,11 +230,14 @@ function metricsFor(
     }
     const soonest = auctions.reduce((acc, a) => (a.endsAt < acc.endsAt ? a : acc), auctions[0]);
     const highest = auctions.reduce((acc, a) => (a.highBidWei > acc.highBidWei ? a : acc), auctions[0]);
+    // "Open auctions" would duplicate both "Traits at stake" (one in-flight
+    // slot per trait) and the section heading, so the fourth slot shows
+    // overall progress instead.
     return [
         ['Soonest close', formatDurationFromSeconds(soonest.endsAt - nowSeconds)],
         ['Highest current bid', highest.highBidWei > 0n ? formatEth(highest.highBidWei) : '—'],
         ['Traits at stake', auctions.length.toString()],
-        ['Open auctions', auctions.length.toString()],
+        ['Permanent traits', `${state.collectedCount} / ${COLLECTION.totalTraits}`],
     ];
 }
 

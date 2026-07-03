@@ -96,6 +96,9 @@ export function Header() {
                         <Link href="/auction" className="nav-link">
                             Auctions
                         </Link>
+                        <Link href="/about" className="nav-link">
+                            About
+                        </Link>
                         <Link href="/trade" className="trade">
                             Trade {TOKEN_SYMBOL}
                         </Link>
@@ -136,6 +139,9 @@ export function Header() {
                     </Link>
                     <Link href="/auction" className="mobile-nav-link" onClick={onLinkClick}>
                         Auctions
+                    </Link>
+                    <Link href="/about" className="mobile-nav-link" onClick={onLinkClick}>
+                        About
                     </Link>
                     <Link
                         href="/trade"
@@ -368,8 +374,9 @@ const styles = `
     }
 }
 
-/* Phone-only trims: shorter bar, tighter spacing, drop the live-bid label
-   (the value alone carries it), pull the drawer up to the shorter header. */
+/* Phone-only trims: shorter bar, tighter spacing, shrink the live-bid label
+   (a bare figure with no label reads as an unexplained number), pull the
+   drawer up to the shorter header. */
 @media (max-width: 760px) {
     .header-inner {
         height: 54px;
@@ -383,9 +390,16 @@ const styles = `
     }
     .header-bid {
         padding: 4px 8px;
+        gap: 6px;
+        align-items: center;
     }
+    /* The label stacks to two short lines ("live" / "bid") beside the
+       figure — keep it tight and centered so it reads as a tag. */
     .header-bid-label {
-        display: none;
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        line-height: 1.25;
+        max-width: 34px;
     }
 }
 @media (max-width: 380px) {

@@ -142,8 +142,8 @@ export function LoopStory({
                 <h3>Trade</h3>
                 <p>
                     Fees on trades in the official pool feed the live bid.{' '}
-                    {fmtPct(FEES.bidLegPct)} of every swap reaches the bid in the same block it
-                    trades.
+                    {fmtPct(FEES.bidLegPct)} of every swap is skimmed for the bid in the same
+                    transaction and metered into the standing offer.
                 </p>
             </div>
         </div>
@@ -191,8 +191,9 @@ export function LoopStory({
                         <h4>Returned to circulation</h4>
                         <p>
                             The high bidder takes the Punk at a premium. At settlement,{' '}
-                            {fmtPct(CLEARED_SPLIT.liveBidPct)} of the proceeds refill the live bid
-                            and {fmtPct(CLEARED_SPLIT.vaultBurnPct)} accrues to the burn pool.
+                            {fmtPct(CLEARED_SPLIT.liveBidPct)} of what the protocol paid refills the
+                            live bid and {fmtPct(CLEARED_SPLIT.vaultBurnPct)} accrues to the burn
+                            pool, along with the premium.
                         </p>
                         <BurnPill>
                             {fmtPct(CLEARED_SPLIT.buybackBurnPct)} buys and burns {TOKEN_TICKER}
@@ -202,9 +203,9 @@ export function LoopStory({
                         <div className="ls-outcome-tag">no bids</div>
                         <h4>Vaulted</h4>
                         <p>
-                            The Punk enters the immutable vault and the chosen trait becomes
-                            permanently collected. One of {COLLECTION.totalTraits} cells fills, for
-                            good.
+                            The Punk enters the immutable vault and the recorded target trait
+                            becomes permanently collected. One of {COLLECTION.totalTraits} cells
+                            fills, for good.
                         </p>
                         <BurnPill>the burn pool buys and burns {TOKEN_TICKER} at settlement</BurnPill>
                     </div>
@@ -235,9 +236,9 @@ export function LoopStory({
                         <h4>Returned to circulation</h4>
                         <p>
                             The high bidder takes the Punk at a premium over what the protocol paid.
-                            At settlement, {fmtPct(CLEARED_SPLIT.liveBidPct)} of the proceeds refill
-                            the live bid and {fmtPct(CLEARED_SPLIT.vaultBurnPct)} accrues to the
-                            burn pool.
+                            At settlement, {fmtPct(CLEARED_SPLIT.liveBidPct)} of what the protocol
+                            paid refills the live bid and {fmtPct(CLEARED_SPLIT.vaultBurnPct)}{' '}
+                            accrues to the burn pool, along with the premium.
                         </p>
                         <BurnPill>
                             {fmtPct(CLEARED_SPLIT.buybackBurnPct)} buys and burns {TOKEN_TICKER}
@@ -247,9 +248,9 @@ export function LoopStory({
                         <div className="ls-outcome-tag">no bids</div>
                         <h4>Vaulted</h4>
                         <p>
-                            The Punk enters the immutable vault and the chosen trait becomes
-                            permanently collected. One of {COLLECTION.totalTraits} cells fills, for
-                            good.
+                            The Punk enters the immutable vault and the recorded target trait
+                            becomes permanently collected. One of {COLLECTION.totalTraits} cells
+                            fills, for good.
                         </p>
                         <BurnPill>the burn pool buys and burns {TOKEN_TICKER} at settlement</BurnPill>
                     </article>

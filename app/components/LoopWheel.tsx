@@ -230,7 +230,7 @@ export function LoopWheel({
                 accept bid
             </span>
             <span className={`lw-sta lw-sta-s${staActive('auction') ? ' is-active' : ''}`}>
-                punk auction
+                return auction
             </span>
             <span className={`lw-sta lw-sta-w lw-sta-burn${highlight === 'all' ? ' is-active' : ''}`}>
                 <BurnFlame size={9} />
