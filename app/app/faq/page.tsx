@@ -484,10 +484,10 @@ const SECTIONS: Section[] = [
                 q: 'Why an ERC20 instead of an NFT?',
                 a: (
                     <>
-                        An NFT would make participation singular. The ERC20 makes the market the
-                        surface. Trading is how bids grow. The token can be bought, sold, held,
-                        ignored, or watched, and all of that activity becomes part of the work. The
-                        audience joins the system without turning the work into governance.
+                        An NFT would make participation singular. An ERC20 puts it on the open
+                        market: anyone can buy or sell {TICKER} at any size. Every buy and sell pays
+                        the fee that grows the live bid, so ordinary trading is what funds Punk
+                        acquisition. Holders get no vote over the vault, the Punks, or the fees.
                     </>
                 ),
             },
@@ -665,9 +665,10 @@ const SECTIONS: Section[] = [
                         That&apos;s a real possible outcome. Some traits are carried by very few
                         Punks. If those owners never accept the live bid, those traits stay open.
                         The collection might be 100, 105, 110 of {COLLECTION.totalTraits} forever.
-                        The state of the work is still the record of what trading funded, what
-                        owners accepted, and what the market returned. The record is the work
-                        whether or not it reaches {COLLECTION.totalTraits}.
+                        The chain still holds the full record of what trading funded, which Punks
+                        owners accepted, and which ones the market returned, and the grid keeps
+                        rendering that record whether or not the count reaches{' '}
+                        {COLLECTION.totalTraits}.
                     </>
                 ),
             },

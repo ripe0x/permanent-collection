@@ -29,8 +29,9 @@ export function Artwork({svgMarkup, caption = false}: {svgMarkup?: string | null
             </div>
             {caption && (
                 <div className="artwork-caption">
-                    The work itself: all {COLLECTION.totalTraits} traits, rendered from chain state
-                    on every read. Cells are permanent, in return auction, or uncollected.{' '}
+                    The on-chain artwork: all {COLLECTION.totalTraits} CryptoPunks traits, redrawn
+                    from current chain state on every read. Each cell is permanent, in return
+                    auction, or uncollected.{' '}
                     <Link href="/collection" className="artwork-caption-link">
                         Open the collection &rarr;
                     </Link>

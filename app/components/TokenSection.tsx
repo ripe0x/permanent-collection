@@ -42,7 +42,7 @@ export async function TokenSection() {
                         updates.
                     </p>
                     <p className="token-copy">
-                        {TOKEN_TICKER} is the ownable token for the work. It does not redeem for
+                        {TOKEN_TICKER} is the collection&apos;s ERC-20. It does not redeem for
                         vaulted Punks and does not control the vault.
                     </p>
                     <div className="fee-box">

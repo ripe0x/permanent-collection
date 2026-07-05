@@ -336,8 +336,8 @@ export default function TokenPage() {
                                     move funds
                                 </li>
                                 <li>
-                                    The point is the art and the mission, not a return to
-                                    holders
+                                    Trading fees fund the live bid and buy-and-burns, not
+                                    payouts to holders
                                 </li>
                             </ul>
                         </div>

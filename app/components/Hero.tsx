@@ -40,10 +40,10 @@ export function Hero({
                 </div>
                 <div className="hero-body">
                     <p className="hero-text">
-                        The system is the work: a standing live bid, funded by official pool trading,
-                        that the market answers one Punk at a time. Any owner of an eligible Punk can
-                        accept it. If the market returns the Punk, it goes back to circulation. If
-                        not, it enters the immutable vault and one more trait becomes permanently
+                        A single ETH bid stands open for any Punk that carries an uncollected trait,
+                        funded by trading fees on the official pool. Any owner of an eligible Punk
+                        can accept it. If the market returns the Punk, it goes back to circulation.
+                        If not, it enters the immutable vault and one more trait becomes permanently
                         collected.
                     </p>
 
@@ -277,8 +277,8 @@ const styles = `
     margin-top: clamp(24px, 4vh, 36px);
 }
 /* Stacked hero puts the artwork directly under the headline, above the
-   paragraph and CTAs — on phones the work itself should be on the first
-   screen, not below the full copy block. */
+   paragraph and CTAs, so the mosaic sits on the first screen on phones
+   instead of below the full copy block. */
 @media (max-width: 900px) {
     .hero {
         grid-template-columns: 1fr;
