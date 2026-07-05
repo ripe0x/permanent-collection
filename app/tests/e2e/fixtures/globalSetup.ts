@@ -92,6 +92,13 @@ async function globalSetup(): Promise<void> {
         // Canonical V4 + Permit2 infra (same on mainnet + the fork).
         NEXT_PUBLIC_PUNKS_MARKET_ADDRESS: '0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB',
         NEXT_PUBLIC_PUNKS_DATA_ADDRESS: '0x9cF9C8eA737A7d5157d3F4282aCe30880a7A117C',
+        // Pin the /homage section to its UNCONFIGURED state (the suite's
+        // homageSmoke.spec.ts asserts the pre-deploy behavior). Blanking
+        // here stops a developer's app/.env.local homage vars (e.g. a
+        // local homage-fork session) from leaking into the test server.
+        NEXT_PUBLIC_HOMAGE_ADDRESS: '',
+        NEXT_PUBLIC_HOMAGE_RENDERER_ADDRESS: '',
+        NEXT_PUBLIC_HOMAGE_DEPLOY_BLOCK: '',
         NEXT_PUBLIC_V4_POOL_MANAGER: '0x000000000004444c5dC75cB358380D2e3dE08A90',
         NEXT_PUBLIC_V4_POSITION_MANAGER: '0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e',
         NEXT_PUBLIC_V4_UNIVERSAL_ROUTER: '0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af',
@@ -112,6 +119,7 @@ async function globalSetup(): Promise<void> {
     }
     env.PC_VAULT_BURN_ADAPTER_ADDRESS = '';
     env.PC_PROTOCOL_LIVE = '';
+    env.PC_HOMAGE_DEPLOY_BLOCK = '';
 
     // `pnpm --filter ./app` matches the worktree's app workspace — the
     // bare-name `--filter app` form is ambiguous and pnpm in this version

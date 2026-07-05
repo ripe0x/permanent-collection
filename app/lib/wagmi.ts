@@ -16,6 +16,12 @@ export const anvilFork = defineChain({
     rpcUrls: {
         default: {http: ['http://127.0.0.1:8545']},
     },
+    // Multicall3 lives at its canonical address on mainnet, so any mainnet
+    // fork has it in state — declaring it lets viem's `client.multicall`
+    // work and wagmi's `useReadContracts` batch on the fork (RPC discipline).
+    contracts: {
+        multicall3: {address: '0xcA11bde05977b3631167028862bE2a173976CA11'},
+    },
 });
 
 /** WalletConnect Cloud project id. Required by RainbowKit's WC, Rainbow, and

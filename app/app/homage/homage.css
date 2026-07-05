@@ -1,0 +1,365 @@
+/* ── Homage section styles. Imported ONLY by app/app/homage/layout.tsx.
+   Tailwind v4, CSS-first, deliberately WITHOUT preflight (PC's globals.css
+   already resets margins/box-sizing; preflight would restyle the whole site
+   via bare element selectors). Utilities are generated ONLY from the homage
+   sources via source(none) + @source. ───────────────────────────────────── */
+@import 'tailwindcss/theme.css' layer(theme) source(none);
+/* Utilities UNLAYERED so class specificity beats PC's unlayered global
+   element selectors (section/button rules in app/globals.css). */
+@import 'tailwindcss/utilities.css' source(none);
+
+@source '../../components/homage';
+@source '.';
+
+/* Homage theme tokens (ex web/tailwind.config.ts). `inline` is load-bearing:
+   color utilities embed the raw var() so they resolve PER ELEMENT against the
+   nearest .homage-root/.atelier scope instead of freezing PC's :root values. */
+@theme inline {
+    --color-bg: #08080a;
+    --color-panel: #0e0e12;
+    --color-line: var(--line, #1c1c22);
+    --color-line2: #26262e;
+    --color-ink: var(--ink, #e7e7ea);
+    --color-dim: var(--dim, #8a8a94);
+    --color-faint: var(--faint, #56565f);
+    --color-card: var(--card, #0e0e12);
+    --color-paper: var(--paper, #08080a);
+    --font-mono: 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
+    --font-sans: ui-sans-serif, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    --container-content: 880px;
+}
+
+/* Restore Tailwind's preflight border baseline, but ONLY inside the homage
+   scope. We import utilities without preflight (so it can't restyle the rest
+   of the PC site), yet the homage components were authored against preflight,
+   where every element defaults to `border: 0 solid` — so a `border`/`border-b`
+   utility renders a solid line and native form-control chrome is cleared.
+   Without this, an `<input>`'s native 2px inset border shows through the
+   intended atelier underline. Layered (`base`) so the unlayered utilities and
+   the component rules below still win and paint their real borders. */
+@layer base {
+    .homage-root *,
+    .homage-root ::before,
+    .homage-root ::after {
+        border: 0 solid;
+    }
+}
+
+.homage-root {
+    /* shadow PC's :root tokens with homage dark defaults */
+    --ink: #e7e7ea;
+    --dim: #8a8a94;
+    --faint: #56565f;
+    --line: #1c1c22;
+    --card: #0e0e12;
+    --paper: #08080a;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* neutralize PC globals that bleed into the scope: app/globals.css sets bare
+   `section { padding: …; border-top: 1px solid var(--line) }` and
+   `button { font: inherit; color: inherit; cursor: pointer; background: none;
+   border: none }` — both unlayered, both would otherwise apply inside a
+   homage page since they target bare elements, not classes. */
+.homage-root section {
+    padding: 0;
+    border-top: 0;
+}
+
+.homage-root button {
+    font: inherit;
+}
+
+.homage-root input,
+.homage-root button,
+.homage-root select {
+    font-family: 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
+}
+
+.homage-root a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* PC sets a global `:focus-visible { outline: 2px solid var(--accent) }` —
+   harmless (still a visible ring) but re-pin it to the homage ink so the
+   ring color matches the section's own palette instead of PC's --accent. */
+.homage-root :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+/* ── "Atelier" theme: warm gallery light. Used by the mint (/) and the
+   explorer (/explore). Ported verbatim from homage web/app/globals.css,
+   scoped under .homage-root. ────────────────────────────────────────── */
+.homage-root .atelier {
+    background: #f4f1ea;
+    color: #16140f;
+    --ink: #16140f;
+    --dim: #6f6757;
+    --faint: #a59c89;
+    --line: #e4ddcf;
+    --card: #fbf9f4;
+    --paper: #f4f1ea;
+}
+
+/* Colour utilities (text-ink, bg-card, border-line, …) resolve to the CSS
+   variables above via the `inline` @theme block, so base AND hover/focus
+   variants pick up the atelier palette here and the dark palette elsewhere. */
+.homage-root .tabular {
+    font-variant-numeric: tabular-nums;
+}
+
+.homage-root .eyebrow-a {
+    font-family: 'SFMono-Regular', ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+.homage-root .display {
+    font-family: ui-sans-serif, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.04;
+    font-size: clamp(30px, 4.4vw, 46px);
+    color: var(--ink);
+}
+.homage-root .display-sm {
+    font-family: ui-sans-serif, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-size: 24px;
+    color: var(--ink);
+}
+.homage-root .price {
+    font-family: ui-sans-serif, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-size: 38px;
+    line-height: 1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+.homage-root .price-unit {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--dim);
+    letter-spacing: 0;
+}
+
+/* art */
+.homage-root .art-mount {
+    width: 100%;
+    max-width: 520px;
+}
+.homage-root .art-frame {
+    position: relative;
+    aspect-ratio: 1/1;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02), 0 24px 60px -28px rgba(40, 30, 10, 0.35);
+    overflow: hidden;
+}
+.homage-root .art-frame--sm {
+    box-shadow: 0 10px 26px -18px rgba(40, 30, 10, 0.4);
+}
+.homage-root .art-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    display: block;
+}
+.homage-root .art-skeleton {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, #efeadf 30%, #f6f2ea 50%, #efeadf 70%);
+    background-size: 200% 100%;
+    animation: hm-shimmer 1.4s infinite;
+}
+.homage-root .art-fade {
+    animation: hm-fade 0.7s ease both;
+}
+.homage-root .art-pop {
+    animation: hm-pop 0.5s cubic-bezier(0.2, 0.9, 0.25, 1.2) both;
+}
+@keyframes hm-fade {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+@keyframes hm-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+@keyframes hm-shimmer {
+    to {
+        background-position: -200% 0;
+    }
+}
+
+/* controls */
+.homage-root .btn-primary {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: ui-sans-serif, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: #f7f4ec;
+    background: #16140f;
+    border: 1px solid #16140f;
+    padding: 15px 20px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+}
+.homage-root .btn-primary:hover {
+    background: #2a261d;
+}
+.homage-root .btn-primary:active {
+    transform: translateY(1px);
+}
+.homage-root .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.homage-root .btn-connect {
+    font-family: 'SFMono-Regular', ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--ink);
+    padding: 8px 14px;
+    cursor: pointer;
+}
+.homage-root .btn-connect:hover {
+    background: var(--ink);
+    color: #f7f4ec;
+}
+
+.homage-root .chip {
+    font-family: 'SFMono-Regular', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--dim);
+    border: 1px solid var(--line);
+    background: #fff;
+    padding: 3px 9px;
+    border-radius: 999px;
+}
+.homage-root .progress {
+    height: 4px;
+    background: var(--line);
+    overflow: hidden;
+}
+.homage-root .progress-fill {
+    height: 100%;
+    background: #16140f;
+    transition: width 0.6s ease;
+}
+.homage-root .spinner {
+    width: 13px;
+    height: 13px;
+    border: 2px solid rgba(247, 244, 236, 0.35);
+    border-top-color: #f7f4ec;
+    border-radius: 50%;
+    animation: hm-spin 0.7s linear infinite;
+}
+@keyframes hm-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* austere mono labels — top-level in the source (not nested under .atelier),
+   used by the mint-price calculator (/calculator). */
+.homage-root .lab {
+    font-family: 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #56565f;
+}
+
+/* ── mint-price calculator (/calculator) ── */
+.homage-root .cap {
+    font-family: 'SFMono-Regular', ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    letter-spacing: 0.01em;
+    line-height: 1.45;
+    color: var(--dim);
+}
+.homage-root .calc-val {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 5px 10px;
+}
+.homage-root .calc-val:focus-within {
+    border-color: var(--ink);
+}
+.homage-root .calc-num {
+    font-family: 'SFMono-Regular', ui-monospace, Menlo, monospace;
+    font-size: 14px;
+    color: var(--ink);
+    background: transparent;
+    border: 0;
+    outline: none;
+    text-align: right;
+    width: 11ch;
+    padding: 0;
+    font-variant-numeric: tabular-nums;
+}
+.homage-root .calc-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--line);
+    outline: none;
+    margin: 2px 0;
+    cursor: pointer;
+}
+.homage-root .calc-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--ink);
+    border: 2px solid var(--paper);
+    cursor: pointer;
+}
+.homage-root .calc-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--ink);
+    border: 2px solid var(--paper);
+    cursor: pointer;
+}
+.homage-root .calc-slider:focus-visible {
+    box-shadow: 0 0 0 3px rgba(22, 20, 15, 0.18);
+}

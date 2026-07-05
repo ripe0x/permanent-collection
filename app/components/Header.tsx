@@ -96,6 +96,9 @@ export function Header() {
                         <Link href="/auction" className="nav-link">
                             Auctions
                         </Link>
+                        <Link href="/homage" className="nav-link">
+                            Homage
+                        </Link>
                         <Link href="/about" className="nav-link">
                             About
                         </Link>
@@ -139,6 +142,9 @@ export function Header() {
                     </Link>
                     <Link href="/auction" className="mobile-nav-link" onClick={onLinkClick}>
                         Auctions
+                    </Link>
+                    <Link href="/homage" className="mobile-nav-link" onClick={onLinkClick}>
+                        Homage
                     </Link>
                     <Link href="/about" className="mobile-nav-link" onClick={onLinkClick}>
                         About

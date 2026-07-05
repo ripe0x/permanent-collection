@@ -537,6 +537,23 @@ app/                      Next.js 15 (App Router) frontend. Wired to the
                           paid Alchemy/Infura keys never ship in the
                           client bundle. Known gap: acceptBid is two
                           sequential txs (no Multicall3 bundling).
+                          /homage section (mint + explore + redeem +
+                          calculator) is the ported "Homage to the Punk"
+                          frontend — the site's main minting UX. Pages in
+                          app/app/homage/ (own scoped Tailwind-v4 sheet,
+                          homage.css — the ONLY Tailwind entry in the
+                          app), libs in app/lib/homage/, components in
+                          app/components/homage/. Gated on
+                          NEXT_PUBLIC_HOMAGE_ADDRESS (+ PC_* runtime
+                          twin): unset ⇒ local explore preview only
+                          (zero-RPC punks-sdk rendering); set ⇒ full
+                          mint/claim/claimFor/allowlist/redeem. Quote
+                          pool key is read from the Homage contract's
+                          own immutables (fallback: PC's canonical 111
+                          pool). Owned-homages scan chunks getLogs to
+                          ≤5000 blocks (proxy rule); follow-up: index
+                          Homage in pc-ponder and swap the seam to one
+                          API fetch.
 
 scripts/                  TS pipeline tools, viem-based.
   snapshot-punksdata.ts            Multicalls 111 trait names + 10,000 masks → TS

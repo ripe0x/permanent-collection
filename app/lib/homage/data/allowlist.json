@@ -1,0 +1,8 @@
+{
+  "_comment": "Source allowlist for the window-2 mint. Replace `addresses` with the real list, then run `node scripts/build-allowlist.mjs` to regenerate allowlist-proofs.json and print the Merkle root to pass to Homage.setAllowlistRoot(root). The dev deployer is included so the local impersonated wallet can test the allowlist flow.",
+  "addresses": [
+    "0xCB43078C32423F5348Cab5885911C3B5faE217F9",
+    "0x0000000000000000000000000000000000001111",
+    "0x0000000000000000000000000000000000002222"
+  ]
+}

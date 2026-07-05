@@ -67,6 +67,16 @@ export interface ContractAddresses {
      *  the same staleness reason as the others; pool-key consumers fall back
      *  to the zero address (the correct "not launched yet" state). */
     artcoinsHook?: Address;
+    /** Homage to the Punk — self-contained ERC721 mint/redeem contract (each
+     *  punk gets a generative homage backed by escrowed 111, redeemable
+     *  anytime). Not yet deployed to mainnet: unset ⇒ the /homage section
+     *  renders the local explore/preview experience and "mint not yet open";
+     *  set ⇒ full mint/redeem goes live. */
+    homage?: Address;
+    /** PermanenceRenderer for the Homage collection (on-chain SVG + metadata).
+     *  Distinct from `renderer` (PC's own RendererRegistry). Optional for the
+     *  same pre-deploy reason as `homage`. */
+    homageRenderer?: Address;
     // External (canonical mainnet, same address everywhere we care about).
     punksMarket: Address;
     punksData: Address;
@@ -292,6 +302,14 @@ function addressesFromNextPublic(): ContractAddresses {
             'NEXT_PUBLIC_ARTCOINS_HOOK_ADDRESS',
             process.env.NEXT_PUBLIC_ARTCOINS_HOOK_ADDRESS,
         ),
+        homage: asAddressOptional(
+            'NEXT_PUBLIC_HOMAGE_ADDRESS',
+            process.env.NEXT_PUBLIC_HOMAGE_ADDRESS,
+        ),
+        homageRenderer: asAddressOptional(
+            'NEXT_PUBLIC_HOMAGE_RENDERER_ADDRESS',
+            process.env.NEXT_PUBLIC_HOMAGE_RENDERER_ADDRESS,
+        ),
         ...CANONICAL_PUNKS,
     };
 }
@@ -334,6 +352,8 @@ function addressesFromRuntimeEnv(): ContractAddresses {
         token: asAddress('TOKEN_ADDRESS', runtimeEnv('TOKEN_ADDRESS')),
         protocolAdmin: asAddress('PROTOCOL_ADMIN_ADDRESS', runtimeEnv('PROTOCOL_ADMIN_ADDRESS')),
         artcoinsHook: asAddressOptional('ARTCOINS_HOOK_ADDRESS', runtimeEnv('ARTCOINS_HOOK_ADDRESS')),
+        homage: asAddressOptional('HOMAGE_ADDRESS', runtimeEnv('HOMAGE_ADDRESS')),
+        homageRenderer: asAddressOptional('HOMAGE_RENDERER_ADDRESS', runtimeEnv('HOMAGE_RENDERER_ADDRESS')),
         ...CANONICAL_PUNKS,
     };
 }
@@ -415,6 +435,10 @@ export interface RuntimePublicConfig {
      *  `eth_getCode` (pure address-based, zero RPC). The code check is only
      *  needed during the launch window; this turns it off afterward. */
     confirmedLive: boolean;
+    /** First block of the Homage deploy — the lower bound for client-side
+     *  Homage Transfer event scans (which must chunk to ≤5000-block ranges
+     *  for the /api/rpc proxy). Unset until the mainnet deploy. */
+    homageDeployBlock?: number;
 }
 
 /** SERVER-side reader: resolve the runtime public config from request-time env.
@@ -429,7 +453,34 @@ export function readRuntimePublicConfig(): RuntimePublicConfig {
         addresses: addressesFromRuntimeEnv(),
         isProtocolLive: isLiveToken(runtimeEnv('TOKEN_ADDRESS')),
         confirmedLive: runtimeEnv('PROTOCOL_LIVE') === 'true',
+        homageDeployBlock: homageDeployBlockFromEnv(runtimeEnv('HOMAGE_DEPLOY_BLOCK')),
     };
+}
+
+/** Parse a Homage deploy-block env value. Undefined when unset; throws on a
+ *  malformed value (mirrors the fail-loud posture of the address parsers). */
+function homageDeployBlockFromEnv(v: string | undefined): number | undefined {
+    if (!v) return undefined;
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 0) {
+        throw new Error(`config: HOMAGE_DEPLOY_BLOCK is not a block number: ${v}`);
+    }
+    return n;
+}
+
+/** The Homage contract's deploy block — the lower bound for client-side
+ *  Homage event scans. ISOMORPHIC, mirroring {@link getContractAddresses}:
+ *  SERVER reads request-time env (`PC_HOMAGE_DEPLOY_BLOCK` over
+ *  `NEXT_PUBLIC_HOMAGE_DEPLOY_BLOCK`); CLIENT reads the injected runtime
+ *  config, falling back to the build-time `NEXT_PUBLIC_*` value. */
+export function getHomageDeployBlock(): number | undefined {
+    if (typeof window !== 'undefined') {
+        return (
+            window.__PC_RUNTIME_CONFIG__?.homageDeployBlock ??
+            homageDeployBlockFromEnv(process.env.NEXT_PUBLIC_HOMAGE_DEPLOY_BLOCK)
+        );
+    }
+    return homageDeployBlockFromEnv(runtimeEnv('HOMAGE_DEPLOY_BLOCK'));
 }
 
 declare global {
