@@ -11,6 +11,7 @@ import {abi as PunkVaultAbi} from './abis/PunkVault';
 import {abi as PunkVaultTitleAuctionAbi} from './abis/PunkVaultTitleAuction';
 import {abi as BuybackBurnerAbi} from './abis/BuybackBurner';
 import {abi as ReferralPayoutAbi} from './abis/ReferralPayout';
+import {abi as HomageAbi} from './abis/Homage';
 
 // Network is selectable so the same indexer code runs against the local anvil
 // fork (chainId 31337, used by the Playwright e2e harness) and the mainnet
@@ -34,6 +35,18 @@ const env = (k: string): `0x${string}` => {
 // src/index.ts) to activate.
 const skimHookAddress = (process.env.SKIM_HOOK_ADDRESS ??
     '0x0000000000000000000000000000000000000000') as `0x${string}`;
+
+// Homage to the Punk (satellite ERC721, tokenId == punkId) is optional for
+// the same reason as the skim hook: it deploys AFTER the protocol, so an
+// indexer deploy that predates the env keeps running. Unset → the zero
+// address matches no logs and the homage tables stay empty; the app's
+// /api/homage/owned route detects the absent homageStats row and 503s, and
+// the frontend falls back to its own chunked log scan. Set HOMAGE_ADDRESS +
+// HOMAGE_START_BLOCK (the Homage deploy block — much later than START_BLOCK,
+// so the backfill skips pre-deploy ranges) to activate.
+const homageAddress = (process.env.HOMAGE_ADDRESS ??
+    '0x0000000000000000000000000000000000000000') as `0x${string}`;
+const homageStartBlock = Number(process.env.HOMAGE_START_BLOCK ?? startBlock);
 
 // How often Ponder polls for a new block over HTTP. The default (~1s) is ~86K
 // calls/day of poll overhead alone. For a low-traffic art protocol where
@@ -161,6 +174,12 @@ export default createConfig({
             abi: ArtCoinsHookSkimFeeAbi,
             address: skimHookAddress,
             startBlock,
+        },
+        Homage: {
+            chain: network,
+            abi: HomageAbi,
+            address: homageAddress,
+            startBlock: homageStartBlock,
         },
     },
 });

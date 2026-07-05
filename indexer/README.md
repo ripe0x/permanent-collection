@@ -71,6 +71,7 @@ Ten contracts on mainnet (config in `ponder.config.ts`, handlers in
 | `BuybackBurner` | `BurnEthDeposited`, `TokensBurned`, `ExecutionRewardPaid`, `ParameterChanged` | `burnerDeposit`, `burnStep`, `parameterChange` |
 | `CryptoPunksMarket` (2017) | `PunkOffered`, `PunkNoLongerForSale`, `PunkBought`, `PunkTransfer` | `punkListing` |
 | `ReferralPayout` | `ReferralCredited`, `ReferralClaimed` | `referrer`, `referralCredit`, `referralClaim` |
+| `Homage` (optional; `HOMAGE_ADDRESS` + `HOMAGE_START_BLOCK`) | `Minted`, `Claimed`, `Redeemed`, `Transfer` | `homageToken`, `homageEvent`, `homageStats` |
 
 Plus a singleton `protocolCounter` (id `"global"`) holding headline aggregates
 (collected/acquisition/vaulted/cleared/proofs counts, total ETH+tokens burned,

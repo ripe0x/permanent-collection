@@ -356,6 +356,59 @@ export const referralClaim = onchainTable('referral_claim', (t) => ({
     txHash: t.hex().notNull(),
 }));
 
+// ──────────────── Homage to the Punk (satellite ERC721; tokenId == punkId) ────────────────
+// Per-token row, keyed by punkId. `redeem` burns the token AND returns the id
+// to the draw pool, so a redeemed id can be re-minted later — the mint
+// handlers upsert (a re-mint resets the row's lifecycle fields). On redeem
+// `currentOwner` is zeroed (mirrors the burn Transfer), so owner-filtered
+// queries naturally exclude redeemed tokens.
+export const homageToken = onchainTable('homage_token', (t) => ({
+    id: t.integer().primaryKey(), // punkId == tokenId
+    punkId: t.integer().notNull(),
+    currentOwner: t.hex().notNull(), // patched by the Transfer handler; zero after redeem
+    minter: t.hex().notNull(), // recipient of the CURRENT mint (for claimFor: the vault)
+    mintKind: t.text().notNull(), // "Minted" (random draw: public/allowlist) | "Claimed" (holder claim)
+    ethSwapped: t.bigint().notNull(), // ETH the mint routed into the pool
+    received111: t.bigint().notNull(), // $111 the swap netted (>= the escrowed THRESHOLD)
+    mintedAtBlock: t.bigint().notNull(),
+    mintedAt: t.bigint().notNull(),
+    mintedTxHash: t.hex().notNull(),
+    redeemed: t.boolean().notNull(),
+    redeemedAt: t.bigint(),
+    redeemedTxHash: t.hex(),
+    lastTransferAt: t.bigint(),
+}));
+
+// Append-only Homage activity log: every Transfer (incl. the mint/burn legs)
+// plus the economic Minted/Claimed/Redeemed events from the same txs.
+export const homageEvent = onchainTable('homage_event', (t) => ({
+    id: t.text().primaryKey(), // <txHash>-<logIndex>
+    kind: t.text().notNull(), // "Minted" | "Claimed" | "Redeemed" | "Transfer"
+    punkId: t.integer().notNull(),
+    from: t.hex(), // Transfer / Redeemed rows
+    to: t.hex(), // Transfer / Minted / Claimed rows
+    ethSwapped: t.bigint(), // Minted / Claimed rows
+    amount111: t.bigint(), // Minted/Claimed: received111; Redeemed: the returned THRESHOLD
+    blockNumber: t.bigint().notNull(),
+    timestamp: t.bigint().notNull(),
+    txHash: t.hex().notNull(),
+}));
+
+// Singleton (id = "global") headline counters. Doubles as the "homage
+// indexing is active" marker: the row exists iff this indexer deploy has
+// processed at least one Homage event, so the app's /api/homage/owned route
+// can distinguish "wallet owns none" (row present, empty owner query) from
+// "homage not indexed here" (row absent → 503 → the frontend falls back to
+// its own log scan).
+export const homageStats = onchainTable('homage_stats', (t) => ({
+    id: t.text().primaryKey(), // "global"
+    mintedCount: t.integer().notNull(), // lifetime mints (Minted + Claimed, incl. re-mints)
+    redeemedCount: t.integer().notNull(),
+    outstandingCount: t.integer().notNull(), // mintedCount - redeemedCount = live tokens
+    totalEthSwappedWei: t.bigint().notNull(), // lifetime ETH mints routed into the pool
+    lastUpdatedAt: t.bigint().notNull(),
+}));
+
 // ──────────────── Singleton: protocol-wide counters ────────────────
 // One row, id = "global". Cheaper than aggregating across event tables for the
 // frontend's headline numbers.

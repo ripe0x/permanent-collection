@@ -8,6 +8,9 @@ import {
     bidEvent,
     burnStep,
     burnerDeposit,
+    homageEvent,
+    homageStats,
+    homageToken,
     parameterChange,
     proof,
     protocolCounter,
@@ -859,4 +862,152 @@ ponder.on('ReferralPayout:ReferralClaimed', async ({event, context}) => {
             lastClaimedAt: event.block.timestamp,
             lastUpdatedAt: event.block.timestamp,
         }));
+});
+
+// ─────────────────────────── Homage to the Punk ───────────────────────────
+// Satellite ERC721 (tokenId == punkId). Optional: with HOMAGE_ADDRESS unset
+// the contract entry indexes the zero address and none of these fire (see
+// ponder.config.ts). `redeem` burns the token AND returns the id to the draw
+// pool, so a redeemed id can be re-minted — the mint handlers upsert. Within
+// a mint/redeem tx the ERC721 Transfer log precedes the economic event, so
+// the Transfer handler leaves the mint (from = 0) and burn (to = 0) legs to
+// the Minted/Claimed/Redeemed handlers and only patches wallet-to-wallet
+// moves.
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+async function bumpHomageStats(
+    db: any,
+    timestamp: bigint,
+    patch: Partial<{mintedDelta: number; redeemedDelta: number; ethSwappedDelta: bigint}>,
+) {
+    const mintedDelta = patch.mintedDelta ?? 0;
+    const redeemedDelta = patch.redeemedDelta ?? 0;
+    await db
+        .insert(homageStats)
+        .values({
+            id: GLOBAL,
+            mintedCount: mintedDelta,
+            redeemedCount: redeemedDelta,
+            outstandingCount: mintedDelta - redeemedDelta,
+            totalEthSwappedWei: patch.ethSwappedDelta ?? 0n,
+            lastUpdatedAt: timestamp,
+        })
+        .onConflictDoUpdate((row: any) => ({
+            mintedCount: row.mintedCount + mintedDelta,
+            redeemedCount: row.redeemedCount + redeemedDelta,
+            outstandingCount: row.outstandingCount + mintedDelta - redeemedDelta,
+            totalEthSwappedWei: row.totalEthSwappedWei + (patch.ethSwappedDelta ?? 0n),
+            lastUpdatedAt: timestamp,
+        }));
+}
+
+// Minted (random draw: public/allowlist) and Claimed (holder claim) share the
+// same args and the same per-token effect; only the kind label differs.
+async function recordHomageMint(kind: 'Minted' | 'Claimed', {event, context}: any) {
+    const punkId = Number(event.args.punkId);
+    await context.db
+        .insert(homageToken)
+        .values({
+            id: punkId,
+            punkId,
+            currentOwner: event.args.to,
+            minter: event.args.to,
+            mintKind: kind,
+            ethSwapped: event.args.ethSwapped,
+            received111: event.args.received111,
+            mintedAtBlock: event.block.number,
+            mintedAt: event.block.timestamp,
+            mintedTxHash: event.transaction.hash,
+            redeemed: false,
+        })
+        // Re-mint of a previously redeemed id: reset the full lifecycle.
+        .onConflictDoUpdate(() => ({
+            currentOwner: event.args.to,
+            minter: event.args.to,
+            mintKind: kind,
+            ethSwapped: event.args.ethSwapped,
+            received111: event.args.received111,
+            mintedAtBlock: event.block.number,
+            mintedAt: event.block.timestamp,
+            mintedTxHash: event.transaction.hash,
+            redeemed: false,
+            redeemedAt: null,
+            redeemedTxHash: null,
+            lastTransferAt: null,
+        }));
+    await context.db.insert(homageEvent).values({
+        id: `${event.transaction.hash}-${event.log.logIndex}`,
+        kind,
+        punkId,
+        to: event.args.to,
+        ethSwapped: event.args.ethSwapped,
+        amount111: event.args.received111,
+        blockNumber: event.block.number,
+        timestamp: event.block.timestamp,
+        txHash: event.transaction.hash,
+    });
+    await bumpHomageStats(context.db, event.block.timestamp, {
+        mintedDelta: 1,
+        ethSwappedDelta: event.args.ethSwapped,
+    });
+}
+
+ponder.on('Homage:Minted', async ({event, context}) => {
+    await recordHomageMint('Minted', {event, context});
+});
+
+ponder.on('Homage:Claimed', async ({event, context}) => {
+    await recordHomageMint('Claimed', {event, context});
+});
+
+ponder.on('Homage:Redeemed', async ({event, context}) => {
+    const punkId = Number(event.args.punkId);
+    // The row must exist (mint precedes redeem); find-guard to stay total.
+    const existing = await context.db.find(homageToken, {id: punkId});
+    if (existing) {
+        await context.db.update(homageToken, {id: punkId}).set({
+            currentOwner: ZERO_ADDRESS,
+            redeemed: true,
+            redeemedAt: event.block.timestamp,
+            redeemedTxHash: event.transaction.hash,
+        });
+    }
+    await context.db.insert(homageEvent).values({
+        id: `${event.transaction.hash}-${event.log.logIndex}`,
+        kind: 'Redeemed',
+        punkId,
+        from: event.args.from,
+        amount111: event.args.amount111,
+        blockNumber: event.block.number,
+        timestamp: event.block.timestamp,
+        txHash: event.transaction.hash,
+    });
+    await bumpHomageStats(context.db, event.block.timestamp, {redeemedDelta: 1});
+});
+
+ponder.on('Homage:Transfer', async ({event, context}) => {
+    const punkId = Number(event.args.tokenId);
+    await context.db.insert(homageEvent).values({
+        id: `${event.transaction.hash}-${event.log.logIndex}`,
+        kind: 'Transfer',
+        punkId,
+        from: event.args.from,
+        to: event.args.to,
+        blockNumber: event.block.number,
+        timestamp: event.block.timestamp,
+        txHash: event.transaction.hash,
+    });
+    // Mint / burn legs are owned by the Minted/Claimed/Redeemed handlers
+    // (which fire after this log in the same tx); only patch real moves.
+    const from = (event.args.from as string).toLowerCase();
+    const to = (event.args.to as string).toLowerCase();
+    if (from === ZERO_ADDRESS || to === ZERO_ADDRESS) return;
+    const existing = await context.db.find(homageToken, {id: punkId});
+    if (existing) {
+        await context.db.update(homageToken, {id: punkId}).set({
+            currentOwner: event.args.to,
+            lastTransferAt: event.block.timestamp,
+        });
+    }
 });

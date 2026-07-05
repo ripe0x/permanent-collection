@@ -738,7 +738,7 @@ export function useSamplePreview(id: number, pfp = false) {
     return {src, meta, isLoading};
 }
 
-/* ---------- owned homages: chunked Transfer(to=you) scan + live ownerOf ---------- */
+/* ---------- owned homages: indexer API first, chunked Transfer(to=you) scan fallback ---------- */
 
 /** Chunk [from, latest] into inclusive ≤5000-block ranges with NUMERIC bounds
  *  (the /api/rpc proxy fails closed on toBlock:'latest' or spans >5000). */
@@ -760,41 +760,85 @@ export function homageScanRanges(from: bigint, latest: bigint): Array<[bigint, b
 // (the one touching `latest`) is never cached, since it can still receive new events.
 const homageRangeCache = new Map<string, bigint[]>();
 
-async function fetchOwnedHomageIds(
+/** Indexer-backed candidate ids via /api/homage/owned — one fetch replaces the
+ *  closed-range chunk walk. Returns null on ANY failure (the route 503s when
+ *  the indexer can't prove its homage tables are live), which sends the caller
+ *  down the full log-scan fallback instead of trusting a hollow empty. */
+async function fetchOwnedIdsFromApi(address: `0x${string}`): Promise<bigint[] | null> {
+    try {
+        const res = await fetch('/api/homage/owned?address=' + address);
+        if (!res.ok) return null;
+        const body = (await res.json()) as {ids?: unknown};
+        if (!Array.isArray(body.ids) || !body.ids.every((id) => Number.isInteger(id))) return null;
+        return (body.ids as number[]).map((id) => BigInt(id));
+    } catch {
+        return null;
+    }
+}
+
+export async function fetchOwnedHomageIds(
     client: NonNullable<ReturnType<typeof usePublicClient>>,
     homage: `0x${string}`,
     address: `0x${string}`
 ): Promise<{ids: number[]; partial: boolean}> {
     const latest = await client.getBlockNumber();
     const deployBlock = getHomageDeployBlock();
-    const from = deployBlock !== undefined ? BigInt(deployBlock) : (latest > 4_999n ? latest - 4_999n : 0n);
-    const partial = deployBlock === undefined;
 
-    const chainId = getChainId();
     const candidates = new Set<bigint>();
-    // Walk sequentially (not Promise.all) — the /api/rpc proxy per-IP-limits request bursts,
-    // and history is immutable, so there's no benefit to racing the chunks.
-    for (const [r0, r1] of homageScanRanges(from, latest)) {
-        const cacheKey = `${chainId}:${homage}:${address}:${r0}`;
-        const isTail = r1 >= latest;
-        const cached = !isTail ? homageRangeCache.get(cacheKey) : undefined;
-        if (cached) {
-            for (const id of cached) candidates.add(id);
-            continue;
-        }
+    let partial = false;
+
+    const indexed = await fetchOwnedIdsFromApi(address);
+    if (indexed) {
+        for (const id of indexed) candidates.add(id);
+        // The indexer polls on the order of minutes, so a homage minted or
+        // received moments ago can trail the API — one live tail chunk (the
+        // same range the scan path never caches) closes that gap at constant
+        // cost. Lag deeper than one chunk (~16h) is an indexer outage; the
+        // ownerOf confirmation below keeps stale POSITIVES out regardless.
+        const tailFrom = latest > 4_999n ? latest - 4_999n : 0n;
+        const from = deployBlock !== undefined && BigInt(deployBlock) > tailFrom ? BigInt(deployBlock) : tailFrom;
         const logs = await client.getContractEvents({
             address: homage,
             abi: homageAbi,
             eventName: 'Transfer',
             args: {to: address},
-            fromBlock: r0,
-            toBlock: r1,
+            fromBlock: from,
+            toBlock: latest,
         });
-        const ids = logs
-            .map((l) => (l.args as {tokenId?: bigint}).tokenId)
-            .filter((x): x is bigint => x !== undefined);
-        for (const id of ids) candidates.add(id);
-        if (!isTail) homageRangeCache.set(cacheKey, ids);
+        for (const l of logs) {
+            const id = (l.args as {tokenId?: bigint}).tokenId;
+            if (id !== undefined) candidates.add(id);
+        }
+    } else {
+        // Fallback: the full chunk walk from the deploy block.
+        const from = deployBlock !== undefined ? BigInt(deployBlock) : (latest > 4_999n ? latest - 4_999n : 0n);
+        partial = deployBlock === undefined;
+
+        const chainId = getChainId();
+        // Walk sequentially (not Promise.all) — the /api/rpc proxy per-IP-limits request bursts,
+        // and history is immutable, so there's no benefit to racing the chunks.
+        for (const [r0, r1] of homageScanRanges(from, latest)) {
+            const cacheKey = `${chainId}:${homage}:${address}:${r0}`;
+            const isTail = r1 >= latest;
+            const cached = !isTail ? homageRangeCache.get(cacheKey) : undefined;
+            if (cached) {
+                for (const id of cached) candidates.add(id);
+                continue;
+            }
+            const logs = await client.getContractEvents({
+                address: homage,
+                abi: homageAbi,
+                eventName: 'Transfer',
+                args: {to: address},
+                fromBlock: r0,
+                toBlock: r1,
+            });
+            const ids = logs
+                .map((l) => (l.args as {tokenId?: bigint}).tokenId)
+                .filter((x): x is bigint => x !== undefined);
+            for (const id of ids) candidates.add(id);
+            if (!isTail) homageRangeCache.set(cacheKey, ids);
+        }
     }
 
     if (candidates.size === 0) return {ids: [], partial};
@@ -813,8 +857,10 @@ async function fetchOwnedHomageIds(
     return {ids, partial};
 }
 
-// TODO(follow-up): once Homage is indexed by the Ponder indexer, this seam swaps to one
-// API fetch (mirroring how /api/owned-punks already backs scanWalletPunks above).
+// Candidates come from the indexer-backed /api/homage/owned (one fetch, mirroring how
+// /api/owned-punks backs scanWalletPunks above) plus a live tail chunk; the chunked
+// deploy-to-head scan remains as the fallback whenever the API can't serve. Either way,
+// every candidate is confirmed against the live ownerOf multicall before display.
 export function useOwnedHomages(address?: `0x${string}`, refreshKey?: number): {ids: number[]; status: OwnedStatus} {
     const client = usePublicClient({chainId: getChainId()});
     const homage = getHomageAddress() ?? zeroAddress;

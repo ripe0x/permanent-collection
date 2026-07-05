@@ -550,10 +550,18 @@ app/                      Next.js 15 (App Router) frontend. Wired to the
                           mint/claim/claimFor/allowlist/redeem. Quote
                           pool key is read from the Homage contract's
                           own immutables (fallback: PC's canonical 111
-                          pool). Owned-homages scan chunks getLogs to
-                          ≤5000 blocks (proxy rule); follow-up: index
-                          Homage in pc-ponder and swap the seam to one
-                          API fetch.
+                          pool). Owned-homages enumeration is
+                          indexer-first: /api/homage/owned (Ponder
+                          homageToken table; 503s fail-closed until the
+                          indexer is homage-aware) + one live tail
+                          getLogs chunk for indexer lag, falling back
+                          to the full ≤5000-block chunked scan (proxy
+                          rule) when the API can't serve; every
+                          candidate is confirmed against live ownerOf.
+                          Indexer side: optional HOMAGE_ADDRESS +
+                          HOMAGE_START_BLOCK envs (indexer/.env.example),
+                          set from the Homage mainnet deploy alongside
+                          the frontend's NEXT_PUBLIC_HOMAGE_* vars.
 
 scripts/                  TS pipeline tools, viem-based.
   snapshot-punksdata.ts            Multicalls 111 trait names + 10,000 masks → TS
