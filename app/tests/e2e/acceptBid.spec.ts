@@ -767,10 +767,7 @@ e2eTest.describe('Phase 2: AcceptBidFlow', () => {
         await selectPunkAndConsent(page, racePunk);
 
         // List the test EOA's Punk first (step 2a) — this leg succeeds
-        // regardless of trait state since pre-listing has no protocol
-        // checks. We do this BEFORE racing in the seed so the timing
-        // matches the brief ("between consent and submit"): the user is
-        // on the confirm panel with consent given, ready to submit accept.
+        // regardless of trait state since pre-listing has no protocol checks.
         const signList = page.getByRole('button', {name: 'Sign list'});
         await expect(signList).toBeEnabled();
         await signList.click();
@@ -780,10 +777,30 @@ e2eTest.describe('Phase 2: AcceptBidFlow', () => {
             page.getByRole('button', {name: 'Signed'}).first(),
         ).toBeVisible({timeout: 20_000});
 
-        // Race the second acquisition through. From anvil account #2:
-        // pre-list raceSeed to Patron, then acceptBid the shared target.
-        // After this pendingTraitCount[sharedTarget] is 1, so the test
-        // Punk's canonicalTargetOf shifts to its next-rarest trait.
+        // Wait for the accept preflight to ARM "Sign accept" BEFORE racing in
+        // the competing acquisition. Once the listing confirms, the UI
+        // `eth_call`-simulates acceptBid against the pinned (pre-race) target
+        // and only enables the button when that simulate passes. Blocking on
+        // the armed button makes "the preflight passed against the pre-race
+        // target" a deterministic PRECONDITION rather than a race the test can
+        // lose. The previous ordering (list → race → click, with no wait here)
+        // let the competing acceptBid land before the preflight's first simulate
+        // attempt on a loaded CI runner, so every attempt saw the ALREADY-
+        // shifted target, the button never armed, and the `toBeEnabled` below
+        // timed out — the CI-only flake this test kept hitting (the review-modal
+        // rewrite reintroduced the racy ordering an earlier de-flake had
+        // removed). The preflight effect does not re-run on an external chain
+        // change, so this 'ready' state persists across the race that follows —
+        // which is exactly the production window under test: the target shifts
+        // AFTER the preflight armed the button but BEFORE the user clicks it.
+        const signAccept = page.getByRole('button', {name: 'Sign accept'});
+        await expect(signAccept).toBeEnabled({timeout: 30_000});
+
+        // Race the second acquisition through, now that "Sign accept" is armed.
+        // From anvil account #2: pre-list raceSeed to Patron, then acceptBid the
+        // shared target. After this pendingTraitCount[sharedTarget] is 1, so the
+        // test Punk's canonicalTargetOf shifts to its next-rarest trait while
+        // the UI (and the armed button) still hold sharedTarget.
         await preListToPatron(raceSeed, ANVIL_ACCOUNT_2, state.deployments.patron);
         await callAcceptBidAs(
             state.deployments.patron,
@@ -821,11 +838,10 @@ e2eTest.describe('Phase 2: AcceptBidFlow', () => {
         );
         expect(shiftedTarget).not.toBe(sharedTarget);
 
-        // Now the test EOA submits — gas estimate reverts with
-        // NotCanonicalTarget, classifyAcceptError decodes it,
-        // isTargetShiftMessage matches, .trait-busy panel renders.
-        const signAccept = page.getByRole('button', {name: 'Sign accept'});
-        await expect(signAccept).toBeEnabled();
+        // Submit — the button is still armed (the preflight does not re-run on
+        // the external shift), but the wallet's fresh gas estimate now reverts
+        // NotCanonicalTarget. classifyAcceptError decodes it,
+        // isTargetShiftMessage matches, and the .trait-busy panel renders.
         await signAccept.click();
 
         const recovery = page.locator('.trait-busy');
