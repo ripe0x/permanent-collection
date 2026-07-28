@@ -24,7 +24,8 @@ const ListingStatus = {None: 0, Active: 1, Allocated: 2, Withdrawn: 3, Settled: 
 const AcquisitionStatus = {None: 0, Pending: 1, Fulfilled: 2, Expired: 3, Refunded: 4, Ready: 5, TimedOut: 6} as const;
 
 // getRound's tuple, named so viem decodes fields by name. Matches the deployed PullPool.Round.
-const roundTuple = {
+// Exported so the standing-order evaluator (./pullorders.ts) decodes the current round the same way.
+export const roundTuple = {
     type: 'tuple',
     components: [
         {name: 'ticketPrice', type: 'uint96'},

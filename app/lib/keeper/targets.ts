@@ -21,6 +21,7 @@ import {abi as PermanentCollectionAbi} from '../abis/PermanentCollection';
 import {abi as ProtocolFeePhaseAdapterAbi} from '../abis/ProtocolFeePhaseAdapter';
 import {abi as ReturnAuctionModuleAbi} from '../abis/ReturnAuctionModule';
 import {pullPoolKeeperAbi} from './pullpool';
+import {pullStandingOrderKeeperAbi} from './pullorders';
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 
@@ -107,6 +108,8 @@ export const KEEPER_ABIS = {
     FeeAutoSwapper: feeAutoSwapperAbi,
     // PullPool cranks, kept on this same process/wallet (see ./pullpool.ts).
     pullPool: pullPoolKeeperAbi,
+    // PullStandingOrder subscription cranks (see ./pullorders.ts). One address per order.
+    pullStandingOrder: pullStandingOrderKeeperAbi,
 } as const;
 
 export type KeeperContract = keyof typeof KEEPER_ABIS;
