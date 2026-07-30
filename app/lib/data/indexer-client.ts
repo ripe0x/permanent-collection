@@ -18,6 +18,15 @@ import {isProtocolLive} from '@/lib/config';
 
 const DEFAULT_DEV_URL = 'http://127.0.0.1:42069';
 
+/** Per-request fetch deadline. A hung indexer (machine up, sync stalled, so
+ *  /graphql never answers) must NOT hang the request: on the home page the
+ *  per-slice fallbacks only fire on a REJECTION, and an un-aborted fetch never
+ *  rejects — it hangs until the hosting function's own wall-clock limit kills
+ *  the whole page (a 502, not a degraded render). The abort turns that hang
+ *  into a timeout error the caller catches and degrades. Kept well under a
+ *  serverless function budget so parallel slices still finish inside it. */
+const REQUEST_TIMEOUT_MS = 6_000;
+
 /** Thrown when a production runtime is serving a LIVE protocol but
  *  INDEXER_URL is unset. Misconfiguration, not outage: callers that degrade
  *  gracefully on an indexer outage must rethrow this (see
@@ -133,6 +142,18 @@ function describeError(e: unknown): string {
 export function getIndexerClient(): GraphQLClient {
     const client = new GraphQLClient(getIndexerUrl(), {
         headers: {'content-type': 'application/json'},
+        // Bound every request so a stalled indexer aborts instead of hanging.
+        // Merge the deadline with any caller-supplied signal so an external
+        // cancel still works. AbortSignal.timeout aborts with a TimeoutError,
+        // which surfaces as a non-ClientError — isOutageError treats it as an
+        // outage, marking the indexer degraded and letting the caller fall back.
+        fetch: ((input: RequestInfo | URL, init?: RequestInit) => {
+            const deadline = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+            const signal = init?.signal
+                ? AbortSignal.any([init.signal, deadline])
+                : deadline;
+            return fetch(input, {...init, signal});
+        }) as typeof fetch,
     });
     const rawRequest = client.request.bind(client) as (...args: unknown[]) => Promise<unknown>;
     client.request = (async (...args: unknown[]) => {

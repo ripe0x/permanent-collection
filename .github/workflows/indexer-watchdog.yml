@@ -1,0 +1,73 @@
+# Watchdog for the pc-ponder Fly indexer.
+#
+# Fly does NOT auto-restart a machine when its health check goes critical in
+# steady state — a failing check only deregisters the instance from the proxy,
+# so a stalled indexer stays down until someone runs `fly machine restart`. On
+# 2026-07-30 the indexer's realtime sync stalled on a free-RPC bad window, the
+# /health check went critical, and with no auto-recovery it sat down for ~1h
+# and 502'd the whole site (the home page reads the indexer server-side).
+#
+# This cron polls /health every 5 min and restarts the machine when it is
+# unreachable. Two checks 20s apart gate the restart so a single transient
+# blip inside Ponder's own retry loop doesn't trigger a needless bounce.
+name: indexer-watchdog
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_restart:
+        description: 'Restart even if /health is passing'
+        type: boolean
+        default: false
+
+# A restart takes ~30-60s to pass the health gate; never let two runs overlap.
+concurrency:
+  group: indexer-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Poll /health, restart on failure
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          APP: pc-ponder
+          FORCE: ${{ github.event.inputs.force_restart }}
+        run: |
+          set -euo pipefail
+
+          probe() { curl -fsS --max-time 12 "https://${APP}.fly.dev/health" -o /dev/null; }
+
+          if [ "${FORCE:-false}" = "true" ]; then
+            echo "force_restart requested"
+          elif probe; then
+            echo "healthy"
+            exit 0
+          else
+            echo "first probe failed; re-checking in 20s to rule out a transient blip"
+            sleep 20
+            if probe; then
+              echo "recovered on re-check; no restart"
+              exit 0
+            fi
+            echo "still unhealthy after re-check; restarting"
+          fi
+
+          # Restart every machine in the app (resolved dynamically — the id is
+          # not stable across redeploys). --skip-health-checks returns without
+          # blocking on the full sync warmup; Fly's own check gates the proxy.
+          ids=$(flyctl machine list -a "$APP" --json | jq -r '.[].id')
+          if [ -z "$ids" ]; then
+            echo "no machines found for $APP" >&2
+            exit 1
+          fi
+          for id in $ids; do
+            echo "restarting machine $id"
+            flyctl machine restart "$id" -a "$APP"
+          done
+          echo "restart issued"
