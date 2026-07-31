@@ -11,11 +11,12 @@
 //
 // The predicates mirror PullStandingOrder.crank() (fwa-roll repo) exactly, so `actionable` matches
 // what the on-chain crank would do. Only the factory address is configured; the pool is read from the
-// factory's immutable POOL() getter.
+// factory's pool getter. A first-generation factory names it POOL(); the dual-pool factory that
+// follows a migration names it pool(), and it answers with whichever generation its orders buy now.
 import type {Address, PublicClient} from 'viem';
 
 import type {KeeperTarget} from './targets';
-import {roundTuple} from './pullpool';
+import {roundTuple, roundTupleV2} from './pullpool';
 
 const RoundState = {None: 0, Open: 1, Pulling: 2, Claimable: 3, Settled: 4, Refunding: 5} as const;
 const UINT256_MAX = (1n << 256n) - 1n;
@@ -23,7 +24,19 @@ const UINT256_MAX = (1n << 256n) - 1n;
 // Factory registry read: every order this factory deployed, in creation order.
 const factoryAbi = [
     {type: 'function', name: 'POOL', stateMutability: 'view', inputs: [], outputs: [{type: 'address'}]},
+    {type: 'function', name: 'pool', stateMutability: 'view', inputs: [], outputs: [{type: 'address'}]},
     {type: 'function', name: 'allOrders', stateMutability: 'view', inputs: [], outputs: [{type: 'address[]'}]},
+] as const;
+
+// The same reads against the newer getRound shape; only that one entry differs.
+const poolReadAbiV2 = [
+    {
+        type: 'function',
+        name: 'getRound',
+        stateMutability: 'view',
+        inputs: [{name: 'roundId', type: 'uint256'}],
+        outputs: [roundTupleV2],
+    },
 ] as const;
 
 // Pool reads the crank consults: pause state, the current round id, that round's snapshot, its
@@ -31,6 +44,9 @@ const factoryAbi = [
 const poolReadAbi = [
     {type: 'function', name: 'paused', stateMutability: 'view', inputs: [], outputs: [{type: 'bool'}]},
     {type: 'function', name: 'roundCount', stateMutability: 'view', inputs: [], outputs: [{type: 'uint256'}]},
+    // Present only where several rounds may be open at once. Rounds pull out of id order, so the one
+    // a buy lands in is the lowest still selling, which is not the newest.
+    {type: 'function', name: 'currentOpenRound', stateMutability: 'view', inputs: [], outputs: [{type: 'uint256'}]},
     {
         type: 'function',
         name: 'getRound',
@@ -94,25 +110,33 @@ export async function evaluatePullOrderTargets(
     client: PublicClient,
     factory: Address,
 ): Promise<KeeperTarget[]> {
-    const [poolRaw, ordersRaw] = await readAll(client, [
+    const [poolUpperRaw, poolLowerRaw, ordersRaw] = await readAll(client, [
         {address: factory, abi: factoryAbi, functionName: 'POOL'},
+        {address: factory, abi: factoryAbi, functionName: 'pool'},
         {address: factory, abi: factoryAbi, functionName: 'allOrders'},
     ]);
-    const pool = poolRaw as Address | undefined;
+    // Only one of the two exists on any given factory; the other read comes back undefined.
+    const pool = (poolLowerRaw ?? poolUpperRaw) as Address | undefined;
     const allOrders = (ordersRaw as Address[] | undefined) ?? [];
     if (!pool || allOrders.length === 0) return [];
     // Newest first, bounded: the tail of the registry is where active orders live.
     const orders = allOrders.slice(-MAX_ORDERS).reverse();
 
     const poolBase = {address: pool, abi: poolReadAbi} as const;
-    const [pausedRaw, roundCountRaw, configRaw] = await readAll(client, [
+    const [pausedRaw, roundCountRaw, configRaw, currentOpenRaw] = await readAll(client, [
         {...poolBase, functionName: 'paused'},
         {...poolBase, functionName: 'roundCount'},
         {...poolBase, functionName: 'config'},
+        {...poolBase, functionName: 'currentOpenRound'},
     ]);
     // Paused pool: crank reverts PoolPaused for every order. Nothing to emit.
     if (pausedRaw === true) return [];
     const roundCount = (roundCountRaw as bigint | undefined) ?? 0n;
+    // Where the pool tracks an open window, the buy lands in the lowest round still selling; zero
+    // there means nothing in the window can sell and the next buy opens one. A pool without the
+    // getter runs one round at a time, so the newest is the only candidate.
+    const currentOpen = (currentOpenRaw as bigint | undefined) ?? 0n;
+    const targetRound = currentOpen !== 0n ? currentOpen : roundCount;
     const config = configRaw as readonly unknown[] | undefined;
     const configPrice = config ? big(config[0]) : 0n;
     const configMaxTickets = config ? big(config[8]) : 0n;
@@ -120,12 +144,15 @@ export async function evaluatePullOrderTargets(
     // The current round is the crank's target when Open; read its snapshot + coverage need once.
     let round: RoundTuple | undefined;
     let needed: bigint | undefined;
-    if (roundCount !== 0n) {
-        const [roundRes, neededRes] = await readAll(client, [
-            {...poolBase, functionName: 'getRound', args: [roundCount]},
-            {...poolBase, functionName: 'ticketsNeeded', args: [roundCount]},
+    if (targetRound !== 0n) {
+        // getRound's struct differs by generation, and the wrong shape decodes plausible numbers out
+        // of the wrong slots rather than failing. Read both and keep whichever returns a round.
+        const [roundV2Res, roundV1Res, neededRes] = await readAll(client, [
+            {address: pool, abi: poolReadAbiV2, functionName: 'getRound', args: [targetRound]},
+            {...poolBase, functionName: 'getRound', args: [targetRound]},
+            {...poolBase, functionName: 'ticketsNeeded', args: [targetRound]},
         ]);
-        round = roundRes as RoundTuple | undefined;
+        round = (roundV2Res ?? roundV1Res) as RoundTuple | undefined;
         needed = neededRes as bigint | undefined;
     }
     const roundOpen = !!round && num(round.state) === RoundState.Open;
@@ -165,23 +192,23 @@ export async function evaluatePullOrderTargets(
 
         if (roundOpen && round) {
             price = big(round.ticketPrice);
-            if (roundCount === lastRoundBought) {
-                reason = `round #${roundCount} already bought`;
+            if (targetRound === lastRoundBought) {
+                reason = `round #${targetRound} already bought`;
             } else if (ts > big(round.fundingDeadline)) {
-                reason = `round #${roundCount} funding deadline passed`;
+                reason = `round #${targetRound} funding deadline passed`;
             } else if (needed === undefined || needed === UINT256_MAX) {
-                reason = `round #${roundCount} FWA not pricing`;
+                reason = `round #${targetRound} FWA not pricing`;
             } else if (needed === 0n) {
-                reason = `round #${roundCount} already covered`;
+                reason = `round #${targetRound} already covered`;
             } else {
                 if (needed < quantity) quantity = needed;
                 const capacity = big(round.maxTickets) - big(round.ticketsSold);
                 if (capacity === 0n) {
-                    reason = `round #${roundCount} ticket cap full`;
+                    reason = `round #${targetRound} ticket cap full`;
                 } else {
                     if (capacity < quantity) quantity = capacity;
                     actionable = true;
-                    reason = `round #${roundCount} needs ${needed}, buying ${quantity}`;
+                    reason = `round #${targetRound} needs ${needed}, buying ${quantity}`;
                 }
             }
         } else {

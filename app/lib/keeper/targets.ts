@@ -124,6 +124,9 @@ export interface KeeperTarget {
     address: Address;
     functionName: string;
     args: string[];
+    /** True when `args` are the elements of ONE array parameter rather than one
+     *  argument each, as in claimFees(uint256[]). Senders wrap accordingly. */
+    argsAreOneArray?: boolean;
     label: string;
     /** True when the call has something to do right now (off cooldown, buffer
      *  non-empty, auction ended, …). A non-actionable target still renders. */

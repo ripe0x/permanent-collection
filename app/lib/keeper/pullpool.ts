@@ -62,6 +62,63 @@ export const roundTuple = {
     ],
 } as const;
 
+// The second-generation pool's getRound: `referralBps`/`referredTickets` after `maxTickets`, and
+// the referral and forced-ETH accounting before `rewardAmount`. Decoding one generation's returndata
+// with the other's shape reads every field past the insertion point out of the wrong slot.
+export const roundTupleV2 = {
+    type: 'tuple',
+    components: [
+        {name: 'ticketPrice', type: 'uint96'},
+        {name: 'feeBps', type: 'uint16'},
+        {name: 'headroomBps', type: 'uint16'},
+        {name: 'feeCapBps', type: 'uint16'},
+        {name: 'crankBountyCap', type: 'uint96'},
+        {name: 'vrfAllowance', type: 'uint96'},
+        {name: 'bountyTipWei', type: 'uint64'},
+        {name: 'stallTimeout', type: 'uint64'},
+        {name: 'fundingDeadline', type: 'uint64'},
+        {name: 'ticketsSold', type: 'uint32'},
+        {name: 'maxTickets', type: 'uint32'},
+        {name: 'referralBps', type: 'uint16'},
+        {name: 'referredTickets', type: 'uint32'},
+        {name: 'minPoolWeightedValue', type: 'uint256'},
+        {name: 'escrow', type: 'uint256'},
+        {name: 'feeOwed', type: 'uint256'},
+        {name: 'refundPool', type: 'uint256'},
+        {name: 'ethPot', type: 'uint256'},
+        {name: 'tokenPot', type: 'uint256'},
+        {name: 'fwaRequestId', type: 'uint256'},
+        {name: 'acquisitionSpent', type: 'uint256'},
+        {name: 'bidValue', type: 'uint256'},
+        {name: 'listingId', type: 'uint256'},
+        {name: 'allocatedAt', type: 'uint64'},
+        {name: 'pullingAt', type: 'uint64'},
+        {name: 'state', type: 'uint8'},
+        {name: 'outcome', type: 'uint8'},
+        {name: 'fwaResolved', type: 'bool'},
+        {name: 'feeClaimed', type: 'bool'},
+        {name: 'nftHeld', type: 'bool'},
+        {name: 'rewardCredited', type: 'bool'},
+        {name: 'creditTaken', type: 'uint128'},
+        {name: 'backingAtAlloc', type: 'uint256'},
+        {name: 'forcedEthTaken', type: 'uint256'},
+        {name: 'referralPool', type: 'uint256'},
+        {name: 'rewardAmount', type: 'uint128'},
+    ],
+} as const;
+
+// The same getRound against the newer struct, read alongside the older one so either generation
+// decodes into its own shape rather than out of the wrong slots.
+const pullPoolRoundAbiV2 = [
+    {
+        type: 'function',
+        name: 'getRound',
+        stateMutability: 'view',
+        inputs: [{name: 'roundId', type: 'uint256'}],
+        outputs: [roundTupleV2],
+    },
+] as const;
+
 // Reads (getRound, ethPendingRound, ticketsNeeded) plus the pool immutable FWA() getter.
 const pullPoolReadAbi = [
     {type: 'function', name: 'roundCount', stateMutability: 'view', inputs: [], outputs: [{type: 'uint256'}]},
@@ -91,6 +148,8 @@ export const pullPoolKeeperAbi = [
     {type: 'function', name: 'settleForcedEth', stateMutability: 'nonpayable', inputs: [{name: 'roundId', type: 'uint256'}], outputs: []},
     {type: 'function', name: 'voidRound', stateMutability: 'nonpayable', inputs: [{name: 'roundId', type: 'uint256'}], outputs: []},
     {type: 'function', name: 'claimFee', stateMutability: 'nonpayable', inputs: [{name: 'roundId', type: 'uint256'}], outputs: []},
+    // The later generation takes the rounds as one array instead of one call each.
+    {type: 'function', name: 'claimFees', stateMutability: 'nonpayable', inputs: [{name: 'roundIds', type: 'uint256[]'}], outputs: []},
     {type: 'function', name: 'syncNftCustody', stateMutability: 'nonpayable', inputs: [{name: 'roundId', type: 'uint256'}], outputs: []},
     {type: 'function', name: 'retryNftRecovery', stateMutability: 'nonpayable', inputs: [{name: 'roundId', type: 'uint256'}], outputs: []},
     {type: 'function', name: 'reclaimRefund', stateMutability: 'nonpayable', inputs: [{name: 'roundId', type: 'uint256'}], outputs: []},
@@ -178,10 +237,20 @@ export async function evaluatePullPoolTargets(
     const ids: bigint[] = [];
     for (let i = first; i <= roundCount; i++) ids.push(i);
 
-    const rounds = (await readAll(
-        client,
-        ids.map((id) => ({...base, functionName: 'getRound', args: [id]})),
-    )) as (RoundTuple | undefined)[];
+    const [roundsV2, roundsV1] = await Promise.all([
+        readAll(
+            client,
+            ids.map((id) => ({address: base.address, abi: pullPoolRoundAbiV2, functionName: 'getRound', args: [id]})),
+        ),
+        readAll(
+            client,
+            ids.map((id) => ({...base, functionName: 'getRound', args: [id]})),
+        ),
+    ]);
+    const rounds = ids.map((_, i) => (roundsV2[i] ?? roundsV1[i])) as (RoundTuple | undefined)[];
+    // The later generation decodes under the v2 shape and claims fees in one array call; the older
+    // one under v1 and claims them one round at a time. Detect it from which shape returned.
+    const isV2 = roundsV2.some((r) => r !== undefined);
 
     // Second-phase FWA/pool reads, batched, keyed by round + kind.
     type Read = {id: bigint; kind: string; call: unknown};
@@ -224,6 +293,7 @@ export async function evaluatePullPoolTargets(
             reward,
         });
     const ts = nowSec();
+    const feeRounds: bigint[] = [];
 
     for (let i = 0; i < ids.length; i++) {
         const id = ids[i];
@@ -269,7 +339,7 @@ export async function evaluatePullPoolTargets(
             }
         } else if (state === RoundState.Settled) {
             if ((r.feeOwed as bigint) > 0n && !r.feeClaimed) {
-                emit(id, 'claimFee', false, 'Settled, fee owed and unclaimed');
+                feeRounds.push(id);
             }
             if (!r.nftHeld && num(r.outcome) === Outcome.ForcedEth) {
                 const stuck = byId.get(`${id}:stuck`) as Address | undefined;
@@ -283,6 +353,27 @@ export async function evaluatePullPoolTargets(
             if ((r.fwaRequestId as bigint) !== 0n) {
                 emit(id, 'reclaimRefund', false, 'Refunding, reclaim any FWA acquisition credit');
             }
+        }
+    }
+
+    // Unclaimed protocol fees, in the shape this generation exposes: v2 sweeps them in one call, v1
+    // one round at a time. Fee-free, so a third party has no reason to run it.
+    if (feeRounds.length > 0) {
+        if (isV2) {
+            targets.push({
+                key: `pullPool.claimFees.${feeRounds[0]}-${feeRounds[feeRounds.length - 1]}`,
+                contract: 'pullPool',
+                address: pool,
+                functionName: 'claimFees',
+                args: feeRounds.map((r) => r.toString()),
+                argsAreOneArray: true,
+                label: `pullPool claimFees ${feeRounds.length} rounds`,
+                actionable: true,
+                reason: `Settled, fees owed on ${feeRounds.length} round(s)`,
+                reward: false,
+            });
+        } else {
+            for (const id of feeRounds) emit(id, 'claimFee', false, 'Settled, fee owed and unclaimed');
         }
     }
 
