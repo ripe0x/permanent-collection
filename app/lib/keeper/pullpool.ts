@@ -202,6 +202,14 @@ const num = (v: unknown) => Number(v as bigint | number);
 const nowSec = () => BigInt(Math.floor(Date.now() / 1000));
 const LOOKBACK = Math.max(1, Number(process.env.KEEPER_PULLPOOL_LOOKBACK ?? '50'));
 
+// Fallback delay on the contested, rewarded cranks. MEV bounty hunters win pull/syncFwaResult/settle
+// within a block or two; racing them only burns gas on the losses, and the round settles anyway. The
+// keeper waits this long, then fires only if the round is still un-cranked — a safety net for when
+// nobody else does, without competing for the ones they will. Anchored on each round's own state-entry
+// block (syncFwaResult) or timestamp (settle). Set to 0 to crank eagerly, the old behaviour.
+const SYNC_GRACE_BLOCKS = BigInt(process.env.KEEPER_SYNC_GRACE_BLOCKS ?? '25');
+const CLAIM_GRACE_SECS = BigInt(process.env.KEEPER_CLAIM_GRACE_SECS ?? '150');
+
 async function readAll(client: PublicClient, contracts: readonly unknown[]): Promise<unknown[]> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res = await client.multicall({contracts: contracts as any, allowFailure: true});
@@ -304,6 +312,9 @@ export async function evaluatePullPoolTargets(
 
         if (state === RoundState.Open) {
             const need = byId.get(`${id}:ticketsNeeded`) as bigint | undefined;
+            // `pull` stays eager: it starts the FWA acquisition, so a delay delays the whole round, and
+            // there is no on-chain "covered since" to grace off. It is also the least contested of the
+            // three (the round has to be freshly covered), so racing it costs little.
             if (need !== undefined && need === 0n && ethPendingRound === 0n) {
                 emit(id, 'pull', true, 'Open, covered, no pull in flight');
             }
@@ -319,7 +330,11 @@ export async function evaluatePullPoolTargets(
                 acqStatus === AcquisitionStatus.Expired ||
                 acqStatus === AcquisitionStatus.Refunded;
             if (terminal) {
-                emit(id, 'syncFwaResult', true, `Pulling, FWA acquisition terminal (status ${acqStatus})`);
+                // Fallback only: fire once the request is old enough that the MEV crankers have had
+                // their shot and left it, so the keeper is not racing them for the bounty.
+                if (opts.currentBlock > requestBlock + SYNC_GRACE_BLOCKS) {
+                    emit(id, 'syncFwaResult', true, `Pulling, FWA terminal (status ${acqStatus}), fallback grace elapsed`);
+                }
             } else {
                 const pullStalled = ts > (r.pullingAt as bigint) + stall;
                 const pendingLive =
@@ -332,10 +347,13 @@ export async function evaluatePullPoolTargets(
         } else if (state === RoundState.Claimable) {
             const listing = byId.get(`${id}:listing`) as readonly unknown[] | undefined;
             const status = listing ? num(listing[10]) : -1;
-            if (status === ListingStatus.Allocated) {
-                emit(id, 'settle', true, 'Claimable, FWA listing Allocated');
-            } else if (status === ListingStatus.Settled) {
-                emit(id, 'settleForcedEth', true, 'Claimable, FWA listing Settled (forced-ETH close)');
+            // Fallback only: settle is rewarded and contested, so wait out the grace from when the round
+            // became claimable (`allocatedAt`) and fire only if nobody else has by then.
+            const claimGraceElapsed = ts > (r.allocatedAt as bigint) + CLAIM_GRACE_SECS;
+            if (status === ListingStatus.Allocated && claimGraceElapsed) {
+                emit(id, 'settle', true, 'Claimable, FWA listing Allocated, fallback grace elapsed');
+            } else if (status === ListingStatus.Settled && claimGraceElapsed) {
+                emit(id, 'settleForcedEth', true, 'Claimable, FWA listing Settled (forced-ETH close), fallback grace elapsed');
             }
         } else if (state === RoundState.Settled) {
             if ((r.feeOwed as bigint) > 0n && !r.feeClaimed) {

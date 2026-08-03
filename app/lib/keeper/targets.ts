@@ -20,6 +20,7 @@ import {abi as LiveBidAdapterAbi} from '../abis/LiveBidAdapter';
 import {abi as PermanentCollectionAbi} from '../abis/PermanentCollection';
 import {abi as ProtocolFeePhaseAdapterAbi} from '../abis/ProtocolFeePhaseAdapter';
 import {abi as ReturnAuctionModuleAbi} from '../abis/ReturnAuctionModule';
+import {groupPullKeeperAbi} from './grouppull';
 import {pullPoolKeeperAbi} from './pullpool';
 import {pullStandingOrderKeeperAbi} from './pullorders';
 
@@ -108,6 +109,8 @@ export const KEEPER_ABIS = {
     FeeAutoSwapper: feeAutoSwapperAbi,
     // PullPool cranks, kept on this same process/wallet (see ./pullpool.ts).
     pullPool: pullPoolKeeperAbi,
+    // GroupPull ("packs") cranks, on the same process/wallet (see ./grouppull.ts).
+    groupPull: groupPullKeeperAbi,
     // PullStandingOrder subscription cranks (see ./pullorders.ts). One address per order.
     pullStandingOrder: pullStandingOrderKeeperAbi,
 } as const;
