@@ -21,6 +21,7 @@ import {abi as PermanentCollectionAbi} from '../abis/PermanentCollection';
 import {abi as ProtocolFeePhaseAdapterAbi} from '../abis/ProtocolFeePhaseAdapter';
 import {abi as ReturnAuctionModuleAbi} from '../abis/ReturnAuctionModule';
 import {groupPullKeeperAbi} from './grouppull';
+import {groupPullStandingOrderKeeperAbi} from './grouporders';
 import {pullPoolKeeperAbi} from './pullpool';
 import {pullStandingOrderKeeperAbi} from './pullorders';
 
@@ -113,6 +114,8 @@ export const KEEPER_ABIS = {
     groupPull: groupPullKeeperAbi,
     // PullStandingOrder subscription cranks (see ./pullorders.ts). One address per order.
     pullStandingOrder: pullStandingOrderKeeperAbi,
+    // GroupPullStandingOrder ("packs" subscription) cranks (see ./grouporders.ts). One address per order.
+    groupPullStandingOrder: groupPullStandingOrderKeeperAbi,
 } as const;
 
 export type KeeperContract = keyof typeof KEEPER_ABIS;
