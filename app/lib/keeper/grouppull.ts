@@ -92,6 +92,10 @@ const num = (v: unknown) => Number(v as bigint | number);
 const nowSec = () => BigInt(Math.floor(Date.now() / 1000));
 // How many rounds back to look for work. A round is finished long before this many follow it.
 const LOOKBACK = BigInt(Math.max(1, Number(process.env.KEEPER_GROUPPULL_LOOKBACK ?? '10')));
+// Opening the next round is owner-driven, not automatic — the cadence is a business decision, not a
+// crank. The keeper opens rounds only when KEEPER_GROUPPULL_AUTO_OPEN=1; off by default, so it finishes
+// live rounds (submit/collect/close/abort/expire) but never starts new ones.
+const AUTO_OPEN = (process.env.KEEPER_GROUPPULL_AUTO_OPEN ?? '').trim() === '1';
 
 async function readAll(client: PublicClient, contracts: readonly unknown[]): Promise<unknown[]> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -141,9 +145,10 @@ export async function evaluateGroupPullTargets(
             reward,
         });
 
-    // Keep the stream running. openRound reverts if a round is already live, so it is emitted only when
-    // none is; the pricing/listing guards inside it are left to the sender's simulate.
-    if (liveRound === 0n && !paused && !deprecated) {
+    // Keep the stream running only when auto-open is enabled. openRound reverts if a round is already
+    // live, so it is emitted only when none is; the pricing/listing guards inside it are left to the
+    // sender's simulate. Off by default: rounds open when the owner opens them.
+    if (AUTO_OPEN && liveRound === 0n && !paused && !deprecated) {
         emit('groupPull.openRound', 'openRound', [], false, 'no round live; open the next');
     }
 
