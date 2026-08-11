@@ -1,6 +1,9 @@
 # Build-context excludes for keeper/Dockerfile (context = repo root).
 # The indexer image is unaffected: its context is indexer/ only.
 .git
+# Claude Code worktrees (each a full checkout) + session data — tens of GB, never needed in the image.
+.claude
+.netlify
 node_modules
 **/node_modules
 app/.next
