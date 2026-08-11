@@ -22,7 +22,7 @@ import {abi as ProtocolFeePhaseAdapterAbi} from '../abis/ProtocolFeePhaseAdapter
 import {abi as ReturnAuctionModuleAbi} from '../abis/ReturnAuctionModule';
 import {groupPullKeeperAbi} from './grouppull';
 import {groupPullStandingOrderKeeperAbi} from './grouporders';
-import {megaRipKeeperAbi} from './megarip';
+import {megaRipKeeperAbi, fwaCrankAbi} from './megarip';
 import {pullPoolKeeperAbi} from './pullpool';
 import {pullStandingOrderKeeperAbi} from './pullorders';
 
@@ -119,6 +119,8 @@ export const KEEPER_ABIS = {
     groupPullStandingOrder: groupPullStandingOrderKeeperAbi,
     // MegaRip one-off event cranks (see ./megarip.ts). A backup keeper for the reward-free hops.
     megaRip: megaRipKeeperAbi,
+    // FWA's reveal crank (processAcquisitions), driven by the MegaRip evaluator when pulls are waiting.
+    fwa: fwaCrankAbi,
 } as const;
 
 export type KeeperContract = keyof typeof KEEPER_ABIS;

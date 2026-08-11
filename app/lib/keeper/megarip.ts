@@ -35,6 +35,11 @@ const nowSec = () => BigInt(Math.floor(Date.now() / 1000));
 // work, so a modest page keeps one tx gas-bounded; the next pass continues where this left off.
 const MAX_PULLS = 25n;
 
+// Per-call page bound on the FWA reveal crank (processAcquisitions). Same idea: bound one tx, continue
+// next pass. This drives Pending -> Allocated when FWA's word is ready but nothing else is advancing
+// FWA's queue.
+const MAX_PROCESS = 40n;
+
 // MegaRip.Acquisition, named so viem decodes fields by name. Matches the deployed struct field order.
 const acquisitionTuple = {
     type: 'tuple',
@@ -76,6 +81,13 @@ const megaRipReadAbi = [
 // `finalize` with no permissionless route into the pot but this one.
 const fwaReadAbi = [
     {type: 'function', name: 'acquisitionRefundCredit', stateMutability: 'view', inputs: [{name: 'holder', type: 'address'}], outputs: [{type: 'uint256'}]},
+] as const;
+
+// FWA's permissionless reveal crank: processes up to `maxCount` of its request queue whose randomness
+// is ready, returning how many it processed. Read-only (eth_call) it previews that count without
+// spending gas, so the evaluator only emits the send when the preview is > 0.
+export const fwaCrankAbi = [
+    {type: 'function', name: 'processAcquisitions', stateMutability: 'nonpayable', inputs: [{name: 'maxCount', type: 'uint256'}], outputs: [{name: 'processed', type: 'uint256'}]},
 ] as const;
 
 // The cranks the sender calls. lock/finalize/sync take no args; pull takes a page bound; settle a
@@ -203,11 +215,36 @@ export async function evaluateMegaRipTargets(
                     args: [String(i)],
                     label: `MegaRip: release stale reserve #${i}`,
                     actionable: true,
-                    reason: `acquisition #${i} (${acqStateName(a.status)}) reserve stranded`,
                     reward: false,
+                    reason: `acquisition #${i} (${acqStateName(a.status)}) reserve stranded`,
                 });
             }
         });
+
+        // processAcquisitions — drive FWA's reveal so Pending pulls become Allocated auctions. FWA
+        // resolves its request queue in order once each word is ready; if nothing else is advancing it,
+        // pulls sit Pending and never reveal. Only cranked when there ARE pending pulls AND a read-only
+        // preview shows FWA would process at least one now (its word is ready) — `processAcquisitions`
+        // returns 0 without reverting when nothing is ready, so gating on the preview avoids no-op sends.
+        if (state === State.Pulling && acqs.some((a) => a.status === AcqState.Pending)) {
+            const fwa = await read<Address>('FWA');
+            const wouldProcess = (await rpc
+                .readContract({address: fwa, abi: fwaCrankAbi, functionName: 'processAcquisitions', args: [MAX_PROCESS]})
+                .catch(() => 0n)) as bigint;
+            if (wouldProcess > 0n) {
+                targets.push({
+                    contract: 'fwa',
+                    address: fwa,
+                    key: 'fwa.processAcquisitions',
+                    functionName: 'processAcquisitions',
+                    args: [MAX_PROCESS.toString()],
+                    label: 'FWA: process the reveal queue',
+                    actionable: true,
+                    reward: false,
+                    reason: `${wouldProcess} pull(s) ready to reveal`,
+                });
+            }
+        }
     }
 
     // sync — withdraw a late FWA refund credit into the pot. Only after finalize is there value with no
